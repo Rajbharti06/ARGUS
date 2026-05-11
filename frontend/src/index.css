@@ -1,0 +1,325 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Surfaces — matte, institutional */
+  --surface-base: #07090d;
+  --surface-panel: #0c1018;
+  --surface-elevated: #111827;
+  --surface-navy: #0a1628;
+  --graphite: #1c2836;
+
+  /* Accents — muted, no laser cyan */
+  --accent-teal: #5c6f72;
+  --accent-teal-deep: #3d4f52;
+  --accent-cyan: #8baeb4;
+  --accent-cyan-dim: #6d8a90;
+  --accent-amber: #a68b4b;
+  --accent-critical: #a85c5c;
+
+  --semantic-nominal: #6d8588;
+  --semantic-nominal-muted: rgba(109, 133, 136, 0.35);
+
+  --text-primary: #e4e8ec;
+  --text-secondary: rgba(228, 232, 236, 0.72);
+  --text-muted: rgba(228, 232, 236, 0.38);
+
+  --border-subtle: rgba(255, 255, 255, 0.06);
+  --border-strong: rgba(255, 255, 255, 0.11);
+
+  --foreground: var(--text-primary);
+  --background: var(--surface-base);
+  --card: var(--surface-panel);
+  --card-foreground: var(--text-primary);
+  --popover: var(--surface-base);
+  --popover-foreground: var(--text-primary);
+  --primary: var(--accent-cyan);
+  --primary-foreground: var(--surface-base);
+  --secondary: var(--surface-elevated);
+  --secondary-foreground: var(--text-secondary);
+  --muted: var(--surface-elevated);
+  --muted-foreground: var(--text-muted);
+  --accent: var(--surface-elevated);
+  --accent-foreground: var(--text-primary);
+  --destructive: var(--accent-critical);
+  --destructive-foreground: #f0f0f0;
+  --input: rgba(255, 255, 255, 0.06);
+  --ring: var(--accent-cyan);
+  --radius: 0.5rem;
+
+  font-family: 'Outfit', system-ui, -apple-system, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  color-scheme: dark;
+  color: var(--foreground);
+  background-color: var(--background);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+@layer base {
+  body {
+    margin: 0;
+    min-width: 320px;
+    min-height: 100vh;
+    background-color: var(--surface-base);
+    color: var(--text-primary);
+    overflow: hidden;
+    position: relative;
+  }
+
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    pointer-events: none;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");
+    opacity: 0.035;
+    mix-blend-mode: overlay;
+  }
+
+  body::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: 999;
+    pointer-events: none;
+    background:
+      linear-gradient(rgba(255, 255, 255, 0.018) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255, 255, 255, 0.018) 1px, transparent 1px);
+    background-size: 48px 48px;
+    mask-image: radial-gradient(ellipse 70% 60% at 50% 45%, black, transparent 85%);
+  }
+
+  #root {
+    width: 100%;
+    height: 100vh;
+    position: relative;
+    z-index: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scanline-overlay {
+    opacity: 0 !important;
+  }
+
+  .argus-breathe,
+  .argus-breathe-opacity {
+    animation: none !important;
+  }
+}
+
+/* ─── Tactical Utilities ─── */
+.argus-grid-bg {
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+  background-size: 48px 48px;
+}
+
+.section-label {
+  font-size: 9px;
+  font-family: 'JetBrains Mono', 'Fira Code', ui-monospace, monospace;
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.font-display {
+  font-family: 'Source Serif 4', Georgia, serif;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 3px;
+  height: 3px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 2px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(139, 174, 180, 0.25);
+}
+
+.scanline-overlay {
+  background: repeating-linear-gradient(
+    to bottom,
+    transparent,
+    transparent 3px,
+    rgba(0, 0, 0, 0.05) 3px,
+    rgba(0, 0, 0, 0.05) 4px
+  );
+  pointer-events: none;
+  opacity: 0.45;
+}
+
+.glass-panel-critical {
+  background: linear-gradient(135deg, rgba(168, 92, 92, 0.06) 0%, rgba(12, 16, 24, 0.92) 100%);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(168, 92, 92, 0.18);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
+}
+
+/* ─── Animations ─── */
+.animate-ring-slow {
+  animation: ring-rotate 48s linear infinite;
+}
+
+.animate-ring-fast {
+  animation: ring-rotate 28s linear infinite;
+}
+
+.animate-breathe {
+  animation: breathe-scale 5s ease-in-out infinite;
+}
+
+@keyframes breathe-scale {
+  0%,
+  100% {
+    opacity: 0.35;
+    transform: scale(0.99);
+  }
+  50% {
+    opacity: 0.65;
+    transform: scale(1);
+  }
+}
+
+/* ─── ARGUS Matte Panels ─── */
+.glass-panel {
+  background: rgba(12, 16, 24, 0.88);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
+}
+
+/** Subtle emphasis — no cyan rim glow by default */
+.glass-panel-accent,
+.glass-panel-glow {
+  background: rgba(12, 16, 24, 0.9);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border: 1px solid rgba(139, 174, 180, 0.1);
+  border-radius: 12px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.42);
+}
+
+.module-header {
+  font-size: 11px;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.btn-argus {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border-radius: 8px;
+  border: 1px solid rgba(139, 174, 180, 0.22);
+  background: rgba(139, 174, 180, 0.06);
+  color: rgba(228, 232, 236, 0.75);
+  font-size: 11px;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: border-color 0.2s ease, background 0.2s ease, color 0.2s ease;
+}
+
+.btn-argus:hover:not(:disabled) {
+  background: rgba(139, 174, 180, 0.1);
+  border-color: rgba(139, 174, 180, 0.35);
+  color: var(--text-primary);
+}
+
+.btn-argus:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+@keyframes argus-fade {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.argus-fade {
+  animation: argus-fade 0.35s ease-out forwards;
+}
+
+@keyframes breathe {
+  0%,
+  100% {
+    opacity: 0.85;
+  }
+  50% {
+    opacity: 0.45;
+  }
+}
+
+@keyframes ring-rotate {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes ring-rotate-reverse {
+  from {
+    transform: rotate(360deg);
+  }
+  to {
+    transform: rotate(0deg);
+  }
+}
+
+/* ─── Severity — institutional, no neon green ─── */
+.severity-critical {
+  color: #c49a9a;
+  border-color: rgba(168, 92, 92, 0.35);
+  background: rgba(168, 92, 92, 0.08);
+}
+.severity-high {
+  color: #c9a882;
+  border-color: rgba(166, 139, 75, 0.35);
+  background: rgba(166, 139, 75, 0.07);
+}
+.severity-medium {
+  color: #b0a080;
+  border-color: rgba(176, 160, 128, 0.3);
+  background: rgba(176, 160, 128, 0.06);
+}
+.severity-low {
+  color: var(--semantic-nominal);
+  border-color: rgba(109, 133, 136, 0.28);
+  background: rgba(109, 133, 136, 0.07);
+}
+.severity-info {
+  color: var(--accent-cyan);
+  border-color: rgba(139, 174, 180, 0.22);
+  background: rgba(139, 174, 180, 0.06);
+}
