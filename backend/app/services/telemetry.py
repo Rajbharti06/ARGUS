@@ -3,6 +3,7 @@ ARGUS — Real-time Telemetry Service
 Gathers local system signals using psutil.
 """
 
+import os
 import psutil
 import platform
 from datetime import datetime
@@ -14,12 +15,18 @@ class TelemetryService:
         """Returns high-level system metrics."""
         cpu = psutil.cpu_percent(interval=0.1)
         mem = psutil.virtual_memory()
-        disk = psutil.disk_usage("/")
-        
+        # Use OS-appropriate root path — Windows needs a drive letter
+        _disk_root = "C:\\" if platform.system() == "Windows" else "/"
+        try:
+            disk = psutil.disk_usage(_disk_root)
+            disk_pct = disk.percent
+        except Exception:
+            disk_pct = 0.0
+
         return {
             "cpu_usage": cpu,
             "memory_usage": mem.percent,
-            "disk_usage": disk.percent,
+            "disk_usage": disk_pct,
             "timestamp": datetime.now().isoformat(),
             "os": platform.system(),
             "active_processes": len(psutil.pids())

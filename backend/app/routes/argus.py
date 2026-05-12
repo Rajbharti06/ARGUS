@@ -325,7 +325,7 @@ async def _detect_local_threats() -> list[dict]:
                 severity = "critical"
                 desc = f"C2 communication pattern detected. Connection to {ip} on known malicious port {port}."
             
-            geo = await _enrich_ip(ip)
+            geo = await enrich_ip_full(ip)
             if geo.get("risk_level") in ["HIGH", "CRITICAL"]:
                 severity = "critical"
                 desc += f" Destination flagged as high-risk ({geo.get('country')}, {geo.get('risk_factors', [])})."
@@ -595,11 +595,11 @@ async def veil_stream(req: VeilRequest):
         score=score,
     )
 
-    router = veil_router()
+    ai_router = veil_router()
 
     async def event_stream():
         try:
-            async for chunk in router.stream(prompt):
+            async for chunk in ai_router.stream(prompt):
                 yield f"data: {json.dumps({'chunk': chunk})}\n\n"
         except Exception as exc:
             yield f"data: {json.dumps({'error': str(exc)})}\n\n"
