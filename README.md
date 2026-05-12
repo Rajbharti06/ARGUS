@@ -66,7 +66,7 @@ Cloud Security Posture Management (CSPM). A circular compliance gauge on the lef
 
 ### THREAT INTEL — Intelligence Feed
 
-![Threat Intel Module](screenshots/Threat%20Intel.png)
+![Threat Intel Module](screenshots/Threat-Intel.png)
 
 Aggregated threat intelligence feed with real-time RSS from The Hacker News, SecurityWeek, Krebs on Security, BleepingComputer, Dark Reading, Infosecurity Magazine, and CISA Advisories. Filter tabs segment items by type: ALL / THREATS / INTELLIGENCE / NATION-STATE / CRIME / CVE. Each feed item shows publication time, source badge, and an education-sector relevance indicator. The right panel features a rotating threat actor profile (ShinyHunters in the screenshot) with attribution details, primary targets, recent campaign activity, TTPs, and days since last confirmed operation.
 
