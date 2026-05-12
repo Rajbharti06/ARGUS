@@ -38,18 +38,20 @@ function useSystemTelemetry() {
   const [sys, setSys] = useState(null)
   const [net, setNet] = useState(null)
   useEffect(() => {
-    const fetch_ = async () => {
+    const fetchTelemetry = async () => {
       try {
         const [sr, nr] = await Promise.all([
           fetch('/api/intelligence/system'),
           fetch('/api/intelligence/network'),
         ])
-        setSys(await sr.json())
-        setNet(await nr.json())
-      } catch {}
+        if (sr.ok) setSys(await sr.json())
+        if (nr.ok) setNet(await nr.json())
+      } catch {
+        // Retain last known telemetry on fetch failure
+      }
     }
-    fetch_()
-    const t = setInterval(fetch_, 8000)
+    fetchTelemetry()
+    const t = setInterval(fetchTelemetry, 8000)
     return () => clearInterval(t)
   }, [])
   return { sys, net }

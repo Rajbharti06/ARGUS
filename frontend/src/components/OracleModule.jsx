@@ -175,7 +175,7 @@ export default function OracleModule() {
         })
       }
     } catch {
-      setTimeline({ error: true })
+      setTimeline({ error: true, timeline: [] })
     } finally {
       setLoading(false)
     }

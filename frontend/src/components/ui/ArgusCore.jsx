@@ -27,8 +27,8 @@ export default function ArgusCore() {
       const suspFactor = data.suspicious_processes.length * 2
       const newCognition = Math.min(99.9, Math.max(85, 99 - (loadFactor * 10) - suspFactor))
       setCognition(+newCognition.toFixed(1))
-    } catch (error) {
-      console.error("Telemetry link failure:", error)
+    } catch {
+      // Telemetry fetch failed — retain last known values
     }
   }
 

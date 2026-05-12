@@ -12,7 +12,7 @@ import {
 } from 'lucide-react'
 import { cn } from '../utils/cn'
 
-const API_BASE = 'http://localhost:8000'
+const API_BASE = '/api'
 
 const TEXT_SAMPLES = [
   {
@@ -474,13 +474,12 @@ export default function VeilModule({ onAlert, soundOn, activated }) {
       }
       setState('done')
     } catch (err) {
-      console.error(err)
       try {
         const demo = await axios.get(`${API_BASE}/forensic/demo`)
         setResult({ ...demo.data, analysis_type: 'media' })
         setState('done')
       } catch {
-        setErrorMsg(err?.response?.data?.error || 'Analysis failed. Ensure the backend is running.')
+        setErrorMsg(err?.response?.data?.error || err?.message || 'Analysis failed. Ensure the backend is running.')
         setState('error')
       }
     }

@@ -72,7 +72,7 @@ function useNewsFeed() {
       try {
         const res = await fetch('/api/intelligence/news')
         const data = await res.json()
-        setItems(data.items || [])
+        setItems(Array.isArray(data) ? data : (data.items || []))
       } catch {
         setItems(FALLBACK_NEWS)
       } finally {

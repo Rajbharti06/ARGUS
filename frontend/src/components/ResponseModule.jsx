@@ -77,8 +77,9 @@ export default function ResponseModule() {
         body: JSON.stringify({ severity: 'critical', event_type: 'credential_compromise', user: 'prof.johnson' }),
       })
       setResult(await res.json())
-    } catch {}
-    finally {
+    } catch {
+      setResult(null)
+    } finally {
       setLoading(false)
       setRunning(true)
     }
