@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { Shield, Activity, Lock, Eye, Terminal, Cpu, Zap, Globe, AlertTriangle, Wifi } from 'lucide-react'
+import { Shield, Activity, Lock, Eye, Terminal, Cpu, Zap, Globe, AlertTriangle, Wifi, Brain } from 'lucide-react'
 import { Heading, Text, Card, Section, Stat, Badge, StatusDot } from './ui/CyberComponents'
 import ArgusCore from './ui/ArgusCore'
 import GlobalThreatIntelligence from './ui/LiveSecurityFeed'
@@ -20,6 +20,7 @@ const MODULE_LINKS = [
   { id: 'oracle',   label: 'ORACLE',   desc: 'Threat correlation intelligence',     icon: Terminal, color: '#fbbf24' },
   { id: 'skynet',   label: 'SKYNET',   desc: 'Cloud infrastructure visibility',     icon: Cpu,      color: '#4ade80' },
   { id: 'response', label: 'RESPONSE', desc: 'Autonomous containment orchestration',icon: Zap,      color: '#fb923c' },
+  { id: 'iem',      label: 'IEM',      desc: 'Identity breach probability model',  icon: Brain,    color: '#8baeb4' },
 ]
 
 function useLive(base, variance = 3, ms = 3800) {

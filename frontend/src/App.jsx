@@ -138,26 +138,26 @@ function TelemetryTicker() {
   return (
     <div
       className="flex-shrink-0 overflow-hidden relative"
-      style={{ background: '#FFFFFF', borderBottom: '1px solid rgba(15,23,42,0.08)', height: '28px' }}
+      style={{ background: '#0a0f1a', borderBottom: '1px solid rgba(255,255,255,0.05)', height: '26px' }}
     >
       {/* Edge fades */}
       <div className="absolute left-0 top-0 bottom-0 w-16 z-10 pointer-events-none"
-        style={{ background: 'linear-gradient(to right, #FFFFFF, transparent)' }} />
+        style={{ background: 'linear-gradient(to right, #0a0f1a, transparent)' }} />
       <div className="absolute right-0 top-0 bottom-0 w-16 z-10 pointer-events-none"
-        style={{ background: 'linear-gradient(to left, #FFFFFF, transparent)' }} />
+        style={{ background: 'linear-gradient(to left, #0a0f1a, transparent)' }} />
 
       {/* LIVE label */}
       <div className="absolute left-0 top-0 bottom-0 flex items-center px-3 z-20 flex-shrink-0"
-        style={{ background: '#F0F4F9', borderRight: '1px solid rgba(15,23,42,0.08)' }}>
+        style={{ background: 'rgba(0,209,255,0.06)', borderRight: '1px solid rgba(0,209,255,0.12)' }}>
         <div className="flex items-center gap-1.5">
-          <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+          <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
           <span style={{
             fontFamily: 'JetBrains Mono, monospace',
-            fontSize: '0.475rem',
+            fontSize: '0.44rem',
             fontWeight: 800,
-            color: '#334155',
+            color: '#8baeb4',
             textTransform: 'uppercase',
-            letterSpacing: '0.2em',
+            letterSpacing: '0.22em',
           }}>LIVE</span>
         </div>
       </div>
@@ -167,22 +167,22 @@ function TelemetryTicker() {
         <div className="ticker-track">
           {items.map((item, i) => (
             <div key={i} className="flex items-center flex-shrink-0"
-              style={{ borderRight: '1px solid rgba(15,23,42,0.06)' }}>
+              style={{ borderRight: '1px solid rgba(255,255,255,0.04)' }}>
               <div className="flex items-center gap-2 px-4">
                 <span style={{
                   fontFamily: 'JetBrains Mono, monospace',
-                  fontSize: '0.47rem',
-                  color: '#94A3B8',
+                  fontSize: '0.44rem',
+                  color: 'rgba(228,232,236,0.28)',
                   textTransform: 'uppercase',
-                  letterSpacing: '0.15em',
+                  letterSpacing: '0.18em',
                 }}>
                   {item.label}
                 </span>
                 <span style={{
                   fontFamily: 'JetBrains Mono, monospace',
-                  fontSize: '0.52rem',
+                  fontSize: '0.5rem',
                   fontWeight: 700,
-                  color: item.color,
+                  color: item.color === '#00D1FF' ? '#8baeb4' : item.color === '#16A34A' ? '#6d8588' : item.color === '#D97706' ? '#a68b4b' : '#a85c5c',
                   letterSpacing: '0.06em',
                 }}>
                   {item.value}
@@ -286,7 +286,7 @@ export default function App() {
   const activeModule = MODULES.find(m => m.id === active)
 
   return (
-    <div className="flex flex-col h-screen w-full overflow-hidden" style={{ background: '#F6F8FC' }}>
+    <div className="flex flex-col h-screen w-full overflow-hidden" style={{ background: '#07090d' }}>
 
       {/* ─── CLASSIFICATION BANNER ─── */}
       <ClassificationBanner />
@@ -299,20 +299,20 @@ export default function App() {
               initial={{ x: 80, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: 80, opacity: 0 }}
               className="flex items-start gap-3 px-4 py-3 rounded-lg max-w-xs"
               style={{
-                background: '#FFFFFF',
-                border: '1px solid rgba(220,38,38,0.2)',
-                boxShadow: '0 4px 20px rgba(220,38,38,0.12), 0 2px 8px rgba(0,0,0,0.08)',
+                background: '#0c1018',
+                border: '1px solid rgba(168,92,92,0.3)',
+                boxShadow: '0 4px 24px rgba(0,0,0,0.6), 0 0 0 1px rgba(168,92,92,0.1)',
               }}
             >
               <div className="p-1.5 rounded-md flex-shrink-0"
-                style={{ background: 'rgba(220,38,38,0.06)', border: '1px solid rgba(220,38,38,0.15)' }}>
-                <Zap className="w-3.5 h-3.5" style={{ color: '#DC2626' }} />
+                style={{ background: 'rgba(168,92,92,0.1)', border: '1px solid rgba(168,92,92,0.2)' }}>
+                <Zap className="w-3.5 h-3.5" style={{ color: '#a85c5c' }} />
               </div>
               <div>
-                <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '0.55rem', fontWeight: 800, color: '#DC2626', textTransform: 'uppercase', letterSpacing: '0.16em', marginBottom: '4px' }}>
+                <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '0.52rem', fontWeight: 800, color: '#a85c5c', textTransform: 'uppercase', letterSpacing: '0.16em', marginBottom: '4px' }}>
                   SYSTEM ALERT
                 </div>
-                <div className="text-xs leading-snug" style={{ color: '#334155' }}>{t.msg}</div>
+                <div className="text-xs leading-snug" style={{ color: 'rgba(228,232,236,0.65)', fontFamily: 'JetBrains Mono, monospace', fontSize: '0.62rem' }}>{t.msg}</div>
               </div>
             </motion.div>
           ))}
@@ -468,110 +468,108 @@ export default function App() {
         {/* ═══════════════ MAIN CONTENT ═══════════════ */}
         <main className="flex-1 flex flex-col overflow-hidden">
 
-          {/* ─── APP HEADER (white) ─── */}
+          {/* ─── APP HEADER (dark) ─── */}
           <header
-            className="header-scan h-14 flex-shrink-0 flex items-center justify-between px-6 z-40 relative"
+            className="h-12 flex-shrink-0 flex items-center justify-between px-5 z-40 relative"
             style={{
-              background: '#FFFFFF',
-              borderBottom: '1px solid rgba(15,23,42,0.09)',
-              boxShadow: '0 1px 8px rgba(0,0,0,0.05)',
+              background: '#0c1018',
+              borderBottom: '1px solid rgba(255,255,255,0.06)',
+              boxShadow: '0 2px 12px rgba(0,0,0,0.4)',
             }}
           >
-            {/* Scan beam overlay */}
-            <div className="header-scan-line" />
-
             {/* Left controls */}
-            <div className="flex items-center gap-4 z-10 relative">
+            <div className="flex items-center gap-3 z-10 relative">
               <button
                 onClick={() => setSidebarOpen(!sidebarOpen)}
-                className="p-2 rounded-md transition-all"
-                style={{ color: '#64748B' }}
-                onMouseEnter={e => { e.currentTarget.style.background = '#F1F5F9'; e.currentTarget.style.color = '#0F172A' }}
-                onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#64748B' }}
+                className="p-1.5 rounded-md transition-all"
+                style={{ color: 'rgba(228,232,236,0.45)' }}
+                onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; e.currentTarget.style.color = '#e4e8ec' }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'rgba(228,232,236,0.45)' }}
               >
                 <Menu className="w-4 h-4" />
               </button>
 
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 pointer-events-none"
-                  style={{ color: '#94A3B8' }} />
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3 h-3 pointer-events-none"
+                  style={{ color: 'rgba(228,232,236,0.3)' }} />
                 <input
                   type="text"
                   placeholder="Search intelligence..."
-                  className="pl-9 pr-4 py-2 text-xs w-64 rounded-md transition-all outline-none"
+                  className="pl-8 pr-3 py-1.5 text-xs w-56 rounded-md transition-all outline-none"
                   style={{
-                    background: '#F8FAFC',
-                    border: '1px solid rgba(15,23,42,0.1)',
-                    color: '#0F172A',
+                    background: 'rgba(255,255,255,0.05)',
+                    border: '1px solid rgba(255,255,255,0.08)',
+                    color: 'rgba(228,232,236,0.75)',
                     fontFamily: 'JetBrains Mono, monospace',
+                    fontSize: '0.68rem',
                   }}
                   onFocus={e => {
-                    e.target.style.borderColor = 'rgba(0,64,193,0.4)'
-                    e.target.style.boxShadow = '0 0 0 3px rgba(0,64,193,0.08)'
-                    e.target.style.background = '#FFFFFF'
+                    e.target.style.borderColor = 'rgba(139,174,180,0.4)'
+                    e.target.style.boxShadow = '0 0 0 2px rgba(139,174,180,0.08)'
+                    e.target.style.background = 'rgba(255,255,255,0.07)'
                   }}
                   onBlur={e => {
-                    e.target.style.borderColor = 'rgba(15,23,42,0.1)'
+                    e.target.style.borderColor = 'rgba(255,255,255,0.08)'
                     e.target.style.boxShadow = 'none'
-                    e.target.style.background = '#F8FAFC'
+                    e.target.style.background = 'rgba(255,255,255,0.05)'
                   }}
                 />
               </div>
             </div>
 
             {/* Right controls */}
-            <div className="flex items-center gap-3 z-10 relative">
+            <div className="flex items-center gap-2.5 z-10 relative">
               {/* Threat / Trust pill */}
-              <div className="flex items-center gap-3 px-4 py-2 rounded-full"
-                style={{ background: '#F8FAFC', border: '1px solid rgba(15,23,42,0.08)' }}>
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-red-500 animate-critical-blink" />
+              <div className="flex items-center gap-2.5 px-3 py-1.5 rounded-md"
+                style={{ background: 'rgba(168,92,92,0.08)', border: '1px solid rgba(168,92,92,0.2)' }}>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
                   <span style={{
                     fontFamily: 'JetBrains Mono, monospace',
-                    fontSize: '0.6rem',
+                    fontSize: '0.58rem',
                     fontWeight: 700,
-                    color: '#DC2626',
+                    color: '#a85c5c',
                     textTransform: 'uppercase',
-                    letterSpacing: '0.12em',
+                    letterSpacing: '0.1em',
                   }}>
-                    18 Threats
+                    18 Active Threats
                   </span>
                 </div>
-                <div className="w-px h-3.5" style={{ background: 'rgba(15,23,42,0.12)' }} />
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-emerald-500" />
+                <div className="w-px h-3" style={{ background: 'rgba(255,255,255,0.1)' }} />
+                <div className="flex items-center gap-1.5">
+                  <div className="w-1.5 h-1.5 rounded-full" style={{ background: '#6d8588' }} />
                   <span style={{
                     fontFamily: 'JetBrains Mono, monospace',
-                    fontSize: '0.6rem',
+                    fontSize: '0.58rem',
                     fontWeight: 700,
-                    color: '#16A34A',
+                    color: '#6d8588',
                     textTransform: 'uppercase',
-                    letterSpacing: '0.12em',
+                    letterSpacing: '0.1em',
                   }}>
-                    98.2% Trust
+                    98.2% Trust Index
                   </span>
                 </div>
               </div>
 
               {/* Icon buttons */}
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-0.5">
                 <button
-                  className="p-2 rounded-md relative transition-all"
-                  style={{ color: '#64748B' }}
-                  onMouseEnter={e => { e.currentTarget.style.background = '#F1F5F9' }}
-                  onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}
+                  className="p-1.5 rounded-md relative transition-all"
+                  style={{ color: 'rgba(228,232,236,0.4)' }}
+                  onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; e.currentTarget.style.color = '#e4e8ec' }}
+                  onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'rgba(228,232,236,0.4)' }}
                 >
-                  <Bell className="w-4 h-4" />
-                  <div className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-red-500"
-                    style={{ border: '1.5px solid #FFFFFF' }} />
+                  <Bell className="w-3.5 h-3.5" />
+                  <div className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-red-500"
+                    style={{ border: '1.5px solid #0c1018' }} />
                 </button>
                 <button
-                  className="p-2 rounded-md transition-all"
-                  style={{ color: '#64748B' }}
-                  onMouseEnter={e => { e.currentTarget.style.background = '#F1F5F9' }}
-                  onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}
+                  className="p-1.5 rounded-md transition-all"
+                  style={{ color: 'rgba(228,232,236,0.4)' }}
+                  onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; e.currentTarget.style.color = '#e4e8ec' }}
+                  onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'rgba(228,232,236,0.4)' }}
                 >
-                  <User className="w-4 h-4" />
+                  <User className="w-3.5 h-3.5" />
                 </button>
               </div>
             </div>
@@ -581,56 +579,56 @@ export default function App() {
           <TelemetryTicker />
 
           {/* ─── CONTENT AREA ─── */}
-          <div className="flex-1 overflow-y-auto p-6 custom-scrollbar" style={{ background: '#F6F8FC' }}>
+          <div className="flex-1 overflow-y-auto px-5 py-4 custom-scrollbar" style={{ background: '#07090d' }}>
             <div className="max-w-7xl mx-auto">
 
               {/* Breadcrumb + mission clock */}
-              <div className="mb-5 flex items-end justify-between">
+              <div className="mb-4 flex items-center justify-between">
                 <div>
-                  <div className="flex items-center gap-1.5 mb-1.5">
+                  <div className="flex items-center gap-1.5 mb-1">
                     <span style={{
                       fontFamily: 'JetBrains Mono, monospace',
-                      fontSize: '0.55rem',
-                      fontWeight: 700,
-                      color: '#94A3B8',
+                      fontSize: '0.52rem',
+                      fontWeight: 600,
+                      color: 'rgba(228,232,236,0.25)',
                       textTransform: 'uppercase',
                       letterSpacing: '0.22em',
                     }}>ARGUS</span>
-                    <ChevronRight className="w-3 h-3" style={{ color: '#CBD5E1' }} />
+                    <ChevronRight className="w-2.5 h-2.5" style={{ color: 'rgba(255,255,255,0.15)' }} />
                     <span style={{
                       fontFamily: 'JetBrains Mono, monospace',
-                      fontSize: '0.55rem',
+                      fontSize: '0.52rem',
                       fontWeight: 700,
-                      color: '#0040C1',
+                      color: '#8baeb4',
                       textTransform: 'uppercase',
                       letterSpacing: '0.22em',
                     }}>
                       {activeModule?.label}
                     </span>
                   </div>
-                  <h1 className="text-2xl font-semibold" style={{ color: '#0F172A', letterSpacing: '-0.01em' }}>
+                  <h1 className="text-xl font-semibold" style={{ color: '#e4e8ec', letterSpacing: '-0.01em' }}>
                     {activeModule?.desc}
                   </h1>
                 </div>
 
                 {/* Mission clock */}
-                <div className="flex items-center gap-2.5 px-3.5 py-2 rounded-md"
-                  style={{ background: '#FFFFFF', border: '1px solid rgba(15,23,42,0.09)', boxShadow: '0 1px 4px rgba(0,0,0,0.05)' }}>
-                  <Activity className="w-3.5 h-3.5" style={{ color: '#0040C1' }} />
+                <div className="flex items-center gap-2.5 px-3 py-2 rounded-md"
+                  style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}>
+                  <Activity className="w-3.5 h-3.5" style={{ color: '#8baeb4' }} />
                   <div>
                     <div style={{
                       fontFamily: 'JetBrains Mono, monospace',
-                      fontSize: '0.55rem',
+                      fontSize: '0.58rem',
                       fontWeight: 700,
-                      color: '#0040C1',
+                      color: '#8baeb4',
                       letterSpacing: '0.1em',
                     }}>
                       {time.toLocaleTimeString('en-US', { hour12: false })} UTC
                     </div>
                     <div style={{
                       fontFamily: 'JetBrains Mono, monospace',
-                      fontSize: '0.42rem',
-                      color: '#94A3B8',
+                      fontSize: '0.4rem',
+                      color: 'rgba(228,232,236,0.3)',
                       textTransform: 'uppercase',
                       letterSpacing: '0.14em',
                     }}>
