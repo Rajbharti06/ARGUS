@@ -29,6 +29,10 @@ class Settings(BaseSettings):
     NVIDIA_API_KEY: str   = ""
     NVIDIA_MODEL: str     = "nvidia/llama-3.3-nemotron-super-49b-v1"
 
+    # ── Threat Intelligence APIs (free tier — optional) ──────────────────────
+    ABUSEIPDB_API_KEY: str   = ""   # https://www.abuseipdb.com  — 1,000 checks/day free
+    GREYNOISE_API_KEY: str   = ""   # https://www.greynoise.io   — Community free tier
+
     # ── Optional overrides ───────────────────────────────────────────────────
     OPENAI_API_KEY: str      = ""
     OPENAI_MODEL: str        = "gpt-4o-mini"

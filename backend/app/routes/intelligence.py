@@ -1,7 +1,8 @@
 """
 ARGUS — Live Intelligence Routes
-Real-time data from: CISA KEV, ip-api.com, RSS feeds, psutil, network telemetry.
-All sources are free and authoritative.
+Real-time data from: CISA KEV, ip-api.com, AbuseIPDB, GreyNoise,
+RSS feeds, psutil, and Oracle engine.
+All external calls degrade gracefully — no API key = fallback to free sources.
 """
 
 import time
@@ -11,6 +12,10 @@ import feedparser
 import httpx
 import psutil
 from fastapi import APIRouter, Path
+
+from app.services.telemetry import TelemetryService
+from app.services.oracle import oracle_engine
+from app.services.threat_intel import enrich_ip_full, TTP_MAP
 
 router = APIRouter()
 
@@ -168,112 +173,60 @@ async def get_cisa_kev():
         }
 
 
-# ── IP INTELLIGENCE ───────────────────────────────────────────────────────────
+# ── IP INTELLIGENCE (multi-source) ───────────────────────────────────────────
 
 @router.get("/ip-intel/{ip}")
 async def get_ip_intelligence(ip: str = Path(..., description="IPv4 address to analyze")):
     """
-    Real IP intelligence via ip-api.com.
-    Returns geolocation, ISP, proxy/VPN detection, and hosting provider info.
-    Free service — no API key required.
+    Full multi-source IP intelligence:
+    ip-api.com (always free) + AbuseIPDB (if key set) + GreyNoise (if key set).
+    Aggregate risk score from all available sources.
     """
-    if ip.startswith(("10.", "192.168.", "127.", "172.16.", "172.17.", "172.18.", "172.19.", "172.2", "172.30.", "172.31.")):
-        return {
-            "ip":       ip,
-            "internal": True,
-            "status":   "private",
-            "country":  "Internal Network",
-            "risk":     "LOW",
-        }
+    return await enrich_ip_full(ip)
 
-    try:
-        async with httpx.AsyncClient(timeout=5.0) as client:
-            resp = await client.get(
-                f"http://ip-api.com/json/{ip}",
-                params={"fields": "status,message,country,countryCode,region,city,isp,org,as,proxy,hosting,query"},
-            )
-            data = resp.json()
 
-        if data.get("status") != "success":
-            return {"ip": ip, "error": data.get("message", "lookup failed")}
+# ── MITRE ATT&CK TTP Reference ────────────────────────────────────────────────
 
-        # Risk scoring
-        risk_score = 0
-        risk_factors = []
-        HIGH_RISK_COUNTRIES = {"Russia", "China", "North Korea", "Iran", "Ukraine", "Romania", "Bulgaria", "Nigeria", "Belarus"}
+@router.get("/ttps")
+def get_ttp_reference():
+    """Return the full ARGUS MITRE ATT&CK TTP mapping table."""
+    return {
+        "total": len(TTP_MAP),
+        "ttps":  [{"event": k, **v} for k, v in TTP_MAP.items()],
+        "source": "MITRE ATT&CK Enterprise v15",
+    }
 
-        if data.get("proxy"):
-            risk_score += 35
-            risk_factors.append("VPN/Proxy anonymization detected")
-        if data.get("hosting"):
-            risk_score += 20
-            risk_factors.append("Cloud/VPS hosting provider — common for C2 infrastructure")
-        if data.get("country") in HIGH_RISK_COUNTRIES:
-            risk_score += 25
-            risk_factors.append(f"Origin country flagged: {data.get('country')}")
 
-        risk_level = "CRITICAL" if risk_score >= 50 else "HIGH" if risk_score >= 35 else "MEDIUM" if risk_score >= 20 else "LOW"
+# ── ORACLE STATS ──────────────────────────────────────────────────────────────
 
-        return {
-            "ip":           data.get("query"),
-            "country":      data.get("country"),
-            "country_code": data.get("countryCode"),
-            "region":       data.get("region"),
-            "city":         data.get("city"),
-            "isp":          data.get("isp"),
-            "org":          data.get("org"),
-            "asn":          data.get("as"),
-            "proxy":        data.get("proxy", False),
-            "hosting":      data.get("hosting", False),
-            "risk_score":   risk_score,
-            "risk_level":   risk_level,
-            "risk_factors": risk_factors,
-        }
-
-    except Exception as exc:
-        return {"ip": ip, "error": str(exc)}
+@router.get("/oracle-stats")
+def get_oracle_stats():
+    """Return aggregate Oracle engine statistics."""
+    return oracle_engine.get_stats()
 
 
 # ── SYSTEM TELEMETRY ──────────────────────────────────────────────────────────
 
 @router.get("/system")
 async def get_system_telemetry():
-    """Real local system telemetry via psutil."""
+    """Real local system telemetry via TelemetryService."""
     try:
-        cpu  = psutil.cpu_percent(interval=0.1)
-        mem  = psutil.virtual_memory()
-        disk = psutil.disk_usage("/")
-
-        suspicious = []
-        FLAGGED_NAMES = {
-            "powershell.exe", "cmd.exe", "wscript.exe", "cscript.exe",
-            "nc.exe", "nmap.exe", "bash", "nc", "nmap", "mshta.exe",
-            "regsvr32.exe", "rundll32.exe", "wmic.exe",
-        }
-        for proc in psutil.process_iter(["pid", "name", "username", "cpu_percent", "status"]):
-            try:
-                info      = proc.info
-                name_lower = (info.get("name") or "").lower()
-                cpu_pct   = info.get("cpu_percent") or 0
-                if name_lower in FLAGGED_NAMES or cpu_pct > 60.0:
-                    suspicious.append(info)
-            except (psutil.NoSuchProcess, psutil.AccessDenied):
-                continue
-
-        net_io = psutil.net_io_counters()
+        stats = TelemetryService.get_system_stats()
+        suspicious = TelemetryService.get_suspicious_processes()
+        
+        # Ingest suspicious processes into Oracle as signals
+        for proc in suspicious[:3]:
+            oracle_engine.ingest_signal(
+                module="SENTINEL",
+                event="suspicious_process",
+                severity="high" if proc["cpu"] > 50 else "medium",
+                user=proc["user"],
+                description=f"Suspicious process detected: {proc['name']} (PID: {proc['pid']}). Reason: {proc['reason']}"
+            )
 
         return {
-            "timestamp":             datetime.datetime.utcnow().isoformat(),
-            "os":                    platform.system(),
-            "os_version":            platform.version()[:40],
-            "cpu_usage":             round(cpu, 1),
-            "memory_usage":          round(mem.percent, 1),
-            "memory_available_gb":   round(mem.available / 1_073_741_824, 2),
-            "disk_usage_percent":    round(disk.percent, 1),
-            "active_processes":      len(psutil.pids()),
-            "suspicious_processes":  suspicious[:5],
-            "bytes_sent_mb":         round(net_io.bytes_sent / 1_048_576, 2),
-            "bytes_recv_mb":         round(net_io.bytes_recv / 1_048_576, 2),
+            **stats,
+            "suspicious_processes": suspicious[:5],
         }
     except Exception as exc:
         return {"error": str(exc), "cpu_usage": 0, "memory_usage": 0, "active_processes": 0}
@@ -283,31 +236,21 @@ async def get_system_telemetry():
 
 @router.get("/network")
 async def get_network_telemetry():
-    """Real active TCP connections with risk scoring."""
+    """Real active TCP connections with risk scoring via TelemetryService."""
     try:
-        connections = []
-        SUSPICIOUS_PORTS = {4444, 6667, 1337, 31337, 9001, 9002, 8080, 4433}
-        HIGH_RISK_ASNS   = {"AS9009", "AS14618", "AS16509"}  # Known for abuse
+        connections = TelemetryService.get_network_connections()
+        
+        # Ingest critical connections into Oracle
+        for conn in connections:
+            if conn["risk"] == "CRITICAL":
+                oracle_engine.ingest_signal(
+                    module="SENTINEL",
+                    event="suspicious_connection",
+                    severity="critical",
+                    ip=conn["remote"].split(":")[0],
+                    description=f"Critical network connection established to {conn['remote']} (PID: {conn['pid']})"
+                )
 
-        for conn in psutil.net_connections(kind="inet"):
-            if conn.status == "ESTABLISHED" and conn.raddr:
-                ip   = conn.raddr.ip
-                port = conn.raddr.port
-                risk = "LOW"
-
-                if port in SUSPICIOUS_PORTS:
-                    risk = "CRITICAL"
-                elif not ip.startswith(("192.168.", "10.", "127.", "::1", "172.")):
-                    risk = "MEDIUM"
-
-                connections.append({
-                    "local":  f"{conn.laddr.ip}:{conn.laddr.port}",
-                    "remote": f"{ip}:{port}",
-                    "status": conn.status,
-                    "risk":   risk,
-                })
-
-        connections.sort(key=lambda x: ["CRITICAL", "HIGH", "MEDIUM", "LOW"].index(x["risk"]))
         net_io = psutil.net_io_counters()
 
         return {
@@ -319,14 +262,8 @@ async def get_network_telemetry():
             "packets_sent":       net_io.packets_sent,
             "packets_recv":       net_io.packets_recv,
         }
-    except Exception:
-        net_io = psutil.net_io_counters()
-        return {
-            "total_established":  0,
-            "active_connections": [],
-            "bytes_sent_mb":      round(net_io.bytes_sent / 1_048_576, 2),
-            "bytes_recv_mb":      round(net_io.bytes_recv / 1_048_576, 2),
-        }
+    except Exception as exc:
+        return {"error": str(exc), "total_established": 0, "active_connections": []}
 
 
 # ── THREAT INTELLIGENCE ───────────────────────────────────────────────────────

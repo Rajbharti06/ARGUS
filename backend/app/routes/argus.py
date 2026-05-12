@@ -19,6 +19,16 @@ import httpx
 
 from app.services.detector import analyze_email
 from app.services.ai_router import AIRouter, veil_router, oracle_router, nvidia_router, best_available_router
+from app.services.oracle import oracle_engine
+from app.services.threat_intel import enrich_ip_full, get_ttp
+from app.services.iem import (
+    all_institutions_comparison,
+    sensitivity_analysis,
+    mfa_attack_simulator,
+    campaign_prediction,
+    realtime_iem_assessment,
+    INSTITUTIONS,
+)
 from app.core.config import settings
 from app.core.logging import logger
 
@@ -41,41 +51,7 @@ _SUSPICIOUS_TLDS = {".xyz", ".tk", ".ml", ".ga", ".cf", ".gq", ".top", ".work", 
 _URL_SHORTENERS  = {"bit.ly", "tinyurl.com", "goo.gl", "t.co", "ow.ly", "is.gd", "buff.ly", "cutt.ly"}
 
 
-async def _enrich_ip(ip: str) -> dict:
-    """Real geolocation + proxy/hosting detection via ip-api.com (free, no auth)."""
-    if ip.startswith(_INTERNAL_PREFIXES):
-        return {}
-    try:
-        async with httpx.AsyncClient(timeout=3.0) as c:
-            r = await c.get(
-                f"http://ip-api.com/json/{ip}",
-                params={"fields": "status,country,countryCode,city,isp,proxy,hosting,as"}
-            )
-            d = r.json()
-            if d.get("status") == "success":
-                risk_score   = 0
-                risk_factors = []
-                if d.get("proxy"):
-                    risk_score += 35; risk_factors.append("VPN/Proxy")
-                if d.get("hosting"):
-                    risk_score += 20; risk_factors.append("Cloud/VPS")
-                if d.get("country") in _HIGH_RISK_COUNTRIES:
-                    risk_score += 25; risk_factors.append(d["country"])
-                risk_level = "CRITICAL" if risk_score >= 50 else "HIGH" if risk_score >= 35 else "MEDIUM" if risk_score >= 20 else "LOW"
-                return {
-                    "country":      d.get("country"),
-                    "city":         d.get("city"),
-                    "isp":          d.get("isp"),
-                    "asn":          d.get("as"),
-                    "proxy":        d.get("proxy", False),
-                    "hosting":      d.get("hosting", False),
-                    "risk_score":   risk_score,
-                    "risk_level":   risk_level,
-                    "risk_factors": risk_factors,
-                }
-    except Exception:
-        pass
-    return {}
+# _enrich_ip removed — replaced by services.threat_intel.enrich_ip_full (multi-source)
 
 
 def _extract_urls(text: str) -> list[str]:
@@ -386,13 +362,22 @@ async def get_sentinel_events():
         for i, ev in enumerate(pool[:6])
     ]
 
-    # Enrich simulated external IPs (parallel)
+    # Enrich simulated external IPs — multi-source: ip-api + AbuseIPDB + GreyNoise
     external = [(i, ev) for i, ev in enumerate(sim_events) if not ev["ip"].startswith(_INTERNAL_PREFIXES)]
     if external:
-        geos = await asyncio.gather(*[_enrich_ip(ev["ip"]) for _, ev in external], return_exceptions=True)
+        geos = await asyncio.gather(*[enrich_ip_full(ev["ip"]) for _, ev in external], return_exceptions=True)
         for (i, _), geo in zip(external, geos):
             if isinstance(geo, dict) and geo:
                 sim_events[i]["geo"] = geo
+                # Upgrade severity if threat intel reveals higher risk
+                if geo.get("risk_level") == "CRITICAL" and sim_events[i]["severity"] != "critical":
+                    sim_events[i]["severity"] = "critical"
+                    sim_events[i]["description"] += f" [ARGUS: IP risk elevated to CRITICAL by threat intel]"
+        # Add TTP mapping to each event
+        for ev in sim_events:
+            ttp = get_ttp(ev.get("event", ""))
+            if ttp:
+                ev["ttp"] = ttp
 
     # 3. Merge and prioritize
     all_events = real_threats + sim_events
@@ -547,8 +532,20 @@ async def veil_analyze(req: VeilRequest):
 
     if final_score >= 70:
         risk_level, verdict = "critical", "CONFIRMED THREAT"
+        oracle_engine.ingest_signal(
+            module="VEIL",
+            event="phishing_detected",
+            severity=risk_level,
+            description=f"Critical phishing threat detected. Verdict: {verdict}. Primary vector: {attack_class}"
+        )
     elif final_score >= 45:
         risk_level, verdict = "high", "HIGH RISK"
+        oracle_engine.ingest_signal(
+            module="VEIL",
+            event="phishing_detected",
+            severity=risk_level,
+            description=f"High-risk phishing attempt detected. Verdict: {verdict}. Primary vector: {attack_class}"
+        )
     elif final_score >= 20:
         risk_level, verdict = "medium", "SUSPICIOUS"
     else:
@@ -657,8 +654,22 @@ def get_identity_score(req: IdentityRequest):
         risk, verdict, action = "medium",   "SUSPICIOUS",   "Enforce step-up MFA — enhanced session monitoring for 72h"
     elif score >= 25:
         risk, verdict, action = "high",     "HIGH RISK",    "Suspend session — force re-authentication with hardware MFA"
+        oracle_engine.ingest_signal(
+            module="IDENTITY",
+            event="identity_anomaly",
+            severity=risk,
+            user=req.username,
+            description=f"High risk identity anomaly detected for user {req.username}. Flags: {', '.join(flags)}"
+        )
     else:
         risk, verdict, action = "critical", "COMPROMISED",  "Terminate all sessions — alert SOC — initiate incident response"
+        oracle_engine.ingest_signal(
+            module="IDENTITY",
+            event="identity_compromise",
+            severity=risk,
+            user=req.username,
+            description=f"Identity compromise confirmed for user {req.username}. Immediate containment required. Flags: {', '.join(flags)}"
+        )
 
     return {
         "username":           req.username,
@@ -680,67 +691,75 @@ _oracle_cache: dict = {"data": None, "expires": 0.0}
 async def get_oracle_timeline():
     global _oracle_cache
     now_ts = time.time()
-    if _oracle_cache["data"] and now_ts < _oracle_cache["expires"]:
-        return _oracle_cache["data"]
+    
+    # Get real incidents from the engine
+    incidents = oracle_engine.get_active_incidents()
+    
+    if not incidents:
+        # Fallback: high-fidelity simulated APT incident with full MITRE ATT&CK mapping
+        now = datetime.now()
+        t   = lambda m: (now - timedelta(minutes=m)).strftime("%H:%M")
 
-    now = datetime.now()
-    t   = lambda m: (now - timedelta(minutes=m)).strftime("%H:%M")
+        sim_incident = {
+            "incident_id":       f"INC-SIM-{random.randint(1000, 9999)}",
+            "severity":          "critical",
+            "title":             "[T1566.001] Spear-Phishing → Credential Compromise → Data Exfiltration",
+            "summary":           (
+                "ARGUS has reconstructed a multi-stage APT intrusion originating from a targeted "
+                "spear-phishing campaign against institutional faculty identities. Attackers leveraged "
+                "a spoofed SSO portal to harvest valid session tokens, enabling silent lateral movement "
+                "and exfiltration of research database records. Containment initiated."
+            ),
+            "kill_chain_phases": [
+                "Initial Access", "Credential Access", "Defense Evasion",
+                "Lateral Movement", "Collection", "Exfiltration"
+            ],
+            "ttps": [
+                {"id": "T1566.001", "name": "Spear Phishing Attachment",  "tactic": "Initial Access"},
+                {"id": "T1078",     "name": "Valid Accounts",             "tactic": "Defense Evasion"},
+                {"id": "T1550.001", "name": "Pass the Cookie",            "tactic": "Defense Evasion"},
+                {"id": "T1021.002", "name": "SMB/Windows Admin Shares",   "tactic": "Lateral Movement"},
+                {"id": "T1005",     "name": "Data from Local System",     "tactic": "Collection"},
+                {"id": "T1567.002", "name": "Exfiltration to Cloud Storage", "tactic": "Exfiltration"},
+            ],
+            "timeline": [
+                {"time": t(47), "event": "Spear-phishing email delivered — spoofed institutional SSO domain", "actor": "External → admin@univ.edu",    "severity": "high",     "module": "VEIL",     "ttp_id": "T1566.001", "ttp_name": "Spear Phishing Attachment",  "tactic": "Initial Access"},
+                {"time": t(41), "event": "Credentials harvested via reverse proxy — session token captured",  "actor": "admin@univ.edu",                "severity": "critical", "module": "IDENTITY", "ttp_id": "T1078",     "ttp_name": "Valid Accounts",             "tactic": "Defense Evasion"},
+                {"time": t(38), "event": "Impossible travel: login from Russia — 2h after Boston session",    "actor": "IP: 185.220.101.14",             "severity": "critical", "module": "SENTINEL", "ttp_id": "T1550.001", "ttp_name": "Pass the Cookie",            "tactic": "Defense Evasion"},
+                {"time": t(25), "event": "Lateral movement via SMB — 6 internal hosts contacted",            "actor": "10.0.4.23 → internal subnet",    "severity": "critical", "module": "SENTINEL", "ttp_id": "T1021.002", "ttp_name": "SMB/Windows Admin Shares",   "tactic": "Lateral Movement"},
+                {"time": t(12), "event": "Research database bulk export — 18,421 records accessed",          "actor": "admin@univ.edu",                "severity": "critical", "module": "SENTINEL", "ttp_id": "T1005",     "ttp_name": "Data from Local System",     "tactic": "Collection"},
+                {"time": t(5),  "event": "2.4 GB exfiltrated to S3 bucket — domain registered 48h ago",      "actor": "IP: 185.220.101.14",             "severity": "critical", "module": "SKYNET",   "ttp_id": "T1567.002", "ttp_name": "Exfiltration to Cloud Storage", "tactic": "Exfiltration"},
+            ],
+            "affected_records": 18421,
+            "attack_vector":     "VEIL:phishing_campaign → IDENTITY:identity_compromise → SENTINEL:token_replay → SENTINEL:lateral_movement → SENTINEL:mass_download → SKYNET:data_exfiltration",
+            "dwell_time":        "47 minutes",
+            "ai_powered":        False,
+        }
+        return sim_incident
 
-    events = [
-        {"time": t(47), "event": "Spear-phishing email delivered — spoofed domain mimicking institutional HR",     "actor": "External → prof.johnson@univ.edu", "severity": "high",     "module": "VEIL"},
-        {"time": t(41), "event": "Credentials submitted on spoofed portal — session token issued",                "actor": "prof.johnson@univ.edu",            "severity": "critical", "module": "IDENTITY"},
-        {"time": t(38), "event": "Successful login from Beijing, China — impossible travel confirmed",             "actor": "IP: 203.45.12.88",                 "severity": "critical", "module": "SENTINEL"},
-        {"time": t(34), "event": "Admin dashboard accessed via replayed session token",                           "actor": "Compromised session",              "severity": "critical", "module": "SENTINEL"},
-        {"time": t(29), "event": "Student database queried — 89,241 records exfiltrated via API",                 "actor": "Compromised session",              "severity": "critical", "module": "ORACLE"},
-        {"time": t(21), "event": "2.4 GB transferred to external endpoint — domain 48h old",                     "actor": "IP: 185.220.101.14 (Romania)",     "severity": "critical", "module": "SENTINEL"},
-        {"time": t(14), "event": "Lateral movement attempt — 4 internal hosts scanned via SMB",                  "actor": "IP: 10.0.0.99 (Internal)",         "severity": "high",     "module": "SENTINEL"},
-        {"time": t(8),  "event": "Session terminated — account quarantined — access revoked across all services", "actor": "ARGUS Autonomous Response Engine",  "severity": "low",      "module": "RESPONSE"},
-    ]
+    # Take the most significant active incident
+    primary_inc = incidents[0]
+    
+    # Generate AI Narrative if not already generated or if it's the cached one
+    if not primary_inc.get("ai_summary") or primary_inc.get("summary").startswith("Multi-stage attack"):
+        try:
+            timeline_text = "\n".join([f"{e['time']} — {e['event']} ({e['actor']})" for e in primary_inc["timeline"]])
+            prompt = _ORACLE_PROMPT.format(
+                timeline=timeline_text,
+                vector=primary_inc["attack_vector"],
+                records=random.randint(50, 5000), # Simulated record count
+                dwell=f"{random.randint(5, 60)} minutes"
+            )
+            
+            router = oracle_router()
+            raw = await router.agenerate(prompt)
+            if raw:
+                primary_inc["summary"] = _strip_thinking(raw)
+                primary_inc["ai_powered"] = True
+        except Exception as exc:
+            logger.warning(f"ORACLE AI narration failed: {exc}")
 
-    affected = random.randint(65000, 89000)
-    vector   = "Spear Phishing → Credential Theft → Session Hijack → Data Exfiltration → Lateral Movement"
-    dwell    = "47 minutes"
-
-    static_summary = (
-        "A coordinated spear-phishing campaign successfully compromised a senior faculty administrator account "
-        "through a spoofed institutional domain. The threat actor leveraged stolen credentials and session token replay "
-        f"to access the university student database, exfiltrating 2.4 GB of records affecting {affected:,} identities "
-        "before ARGUS autonomous detection triggered containment and session termination."
-    )
-
-    ai_summary = static_summary
-    ai_powered = False
-    try:
-        timeline_text = "\n".join(f"{e['time']} — {e['event']} ({e['actor']})" for e in events)
-        prompt = _ORACLE_PROMPT.format(
-            timeline=timeline_text, vector=vector, records=f"{affected:,}", dwell=dwell
-        )
-        if settings.NVIDIA_API_KEY:
-            raw = await nvidia_router().agenerate(prompt)
-        elif settings.FEATHERLESS_API_KEY:
-            raw = await oracle_router().agenerate(prompt)
-        else:
-            raw = None
-        if raw:
-            ai_summary = _strip_thinking(raw) or static_summary
-            ai_powered = True
-    except Exception as exc:
-        logger.warning(f"ORACLE AI narrative failed: {exc}")
-
-    result = {
-        "incident_id":       f"INC-{random.randint(10000, 99999)}",
-        "severity":          "critical",
-        "title":             "Advanced Persistent Threat — Credential Compromise & Multi-Stage Data Exfiltration",
-        "summary":           ai_summary,
-        "timeline":          events,
-        "affected_records":  affected,
-        "attack_vector":     vector,
-        "dwell_time":        dwell,
-        "ai_powered":        ai_powered,
-    }
-    _oracle_cache["data"]    = result
-    _oracle_cache["expires"] = now_ts + 90  # Cache 90 seconds
-    return result
+    return primary_inc
 
 
 # ─── MODULE 5: SKYNET ─────────────────────────────────────────────────────────
@@ -856,3 +875,108 @@ async def get_response_recommendations(req: ResponseRequest):
         "ai_enhanced":            bool(ai_response),
         "playbook_id":            f"PB-{random.randint(1000, 9999)}",
     }
+
+
+# ─── MODULE 8: IEM — Identity Exploitation Model ─────────────────────────────
+# Implements "A Sequential Probabilistic Framework for Quantifying Compound
+# Breach Risk in AiTM Phishing Campaigns Against Higher Education Institutions"
+# (Raj Bharti, IEEE TIFS 2026). P(breach) = P(L1)·P(L2|L1)·P(L3|L2)·P(L4|L3)
+
+
+class IEMRealtimeRequest(BaseModel):
+    failed_logins:     Optional[int]  = 0
+    impossible_travel: Optional[bool] = False
+    tor_detected:      Optional[bool] = False
+    new_device:        Optional[bool] = False
+    download_spike:    Optional[bool] = False
+    mfa_type:          Optional[str]  = "push"    # none|sms|totp|push|fido2
+    phishing_detected: Optional[bool] = False
+    institution:       Optional[str]  = "harvard"
+
+
+@router.get("/iem/institutions")
+def iem_institutions():
+    """All 5-institution Monte Carlo breach probability comparison (Table IV)."""
+    results_list = all_institutions_comparison()
+    # Enrich with IAM platform + attack vector metadata from INSTITUTIONS dict
+    for item in results_list:
+        key  = item.get("key", "")
+        meta = INSTITUTIONS.get(key, {})
+        item["iam_platform"]  = meta.get("iam_platform", "Unknown")
+        item["attack_vector"] = meta.get("attack_vector", "Unknown")
+    # Convert to dict keyed by institution key for frontend convenience
+    results_dict = {item["key"]: item for item in results_list}
+    return {
+        "model":        "Monte Carlo N=100,000, seed=42",
+        "framework":    "IEM — IEEE TIFS 2026",
+        "formula":      "P(breach) = P(L1)·P(L2|L1)·P(L3|L2)·P(L4|L3)",
+        "institutions": results_dict,
+    }
+
+
+@router.get("/iem/sensitivity")
+def iem_sensitivity(institution: str = "harvard"):
+    """Sensitivity analysis — intervention impact on breach probability."""
+    return sensitivity_analysis(institution)
+
+
+@router.get("/iem/simulator")
+def iem_simulator():
+    """5×5 MFA attack type × MFA method scenario matrix (Table IX)."""
+    return mfa_attack_simulator()
+
+
+@router.get("/iem/campaign")
+def iem_campaign(n_targets: int = 50):
+    """ShinyHunters-style campaign prediction — E[B] = N × P(breach)."""
+    return campaign_prediction(n_targets)
+
+
+_MFA_LABEL_MAP = {
+    "none":  "None",
+    "sms":   "SMS OTP",
+    "totp":  "TOTP",
+    "push":  "Push MFA",
+    "fido2": "FIDO2",
+}
+
+
+@router.post("/iem/realtime")
+def iem_realtime(req: IEMRealtimeRequest):
+    """Real-time IEM assessment from live ARGUS signals."""
+    mfa_label = _MFA_LABEL_MAP.get(req.mfa_type.lower(), "Push MFA")
+    result = realtime_iem_assessment(
+        mfa_type=mfa_label,
+        has_aitm_indicators=req.phishing_detected,
+        has_impossible_travel=req.impossible_travel,
+        has_new_device=req.new_device,
+        has_credential_harvesting=req.download_spike,
+        has_vpn=False,
+        has_tor=req.tor_detected,
+        has_authority_pretext=req.phishing_detected,
+        has_urgency_language=req.failed_logins >= 3,
+        iam_type="Centralized Cloud",
+    )
+    # Normalize field names for frontend consistency
+    result["mean_breach"] = result.pop("breach_probability", 0)
+    result["ci_95"]       = result.pop("confidence_interval", [0, 0])
+    result["risk_level"]  = result.pop("risk_tier", "UNKNOWN")
+    layers = result.pop("layer_estimates", {})
+    result["l1_mean"] = layers.get("l1_human_trust",  {}).get("mean")
+    result["l2_mean"] = layers.get("l2_authentication",{}).get("mean")
+    result["l3_mean"] = layers.get("l3_interception",  {}).get("mean")
+    result["l4_mean"] = layers.get("l4_privilege",     {}).get("mean")
+
+    if result.get("mean_breach", 0) > 0.55:
+        oracle_engine.ingest_signal(
+            module="IEM",
+            event="high_breach_probability",
+            severity="critical",
+            description=(
+                f"IEM real-time assessment: P(breach)={result['mean_breach']:.3f} "
+                f"[{result['risk_level']}]. MFA: {mfa_label}. "
+                f"Signals: travel={req.impossible_travel}, TOR={req.tor_detected}, "
+                f"phishing={req.phishing_detected}"
+            ),
+        )
+    return result
