@@ -383,10 +383,19 @@ async def get_sentinel_events():
     all_events = real_threats + sim_events
     all_events.sort(key=lambda x: ["critical", "high", "medium", "low"].index(x["severity"]))
     
+    critical_count = sum(1 for e in all_events if e["severity"] == "critical")
+    high_count     = sum(1 for e in all_events if e["severity"] == "high")
+    threat_level   = (
+        "critical" if critical_count >= 2 else
+        "high"     if critical_count >= 1 or high_count >= 3 else
+        "medium"   if high_count >= 1 else
+        "low"
+    )
     return {
         "events":         all_events[:12],
         "total_today":    random.randint(312, 487) + len(real_threats),
-        "critical_count": sum(1 for e in all_events if e["severity"] == "critical"),
+        "critical_count": critical_count,
+        "threat_level":   threat_level,
         "status":         "monitoring",
         "real_threats_detected": len(real_threats) > 0
     }
@@ -684,77 +693,75 @@ def get_identity_score(req: IdentityRequest):
 
 # ─── MODULE 4: ORACLE ─────────────────────────────────────────────────────────
 
-_oracle_cache: dict = {"data": None, "expires": 0.0}
+def _build_sim_incident() -> dict:
+    """High-fidelity simulated APT incident — 6 TTPs across full kill chain."""
+    now = datetime.now()
+    t   = lambda m: (now - timedelta(minutes=m)).strftime("%H:%M")
+    return {
+        "incident_id":       f"INC-SIM-{random.randint(1000, 9999)}",
+        "severity":          "critical",
+        "title":             "[T1566.001] Spear-Phishing → Credential Compromise → Data Exfiltration",
+        "summary":           (
+            "ARGUS has reconstructed a multi-stage APT intrusion originating from a targeted "
+            "spear-phishing campaign against institutional faculty identities. Attackers leveraged "
+            "a spoofed SSO portal to harvest valid session tokens via AiTM reverse proxy, enabling "
+            "silent lateral movement across 6 internal hosts and exfiltration of 18,421 research "
+            "database records to a cloud storage bucket registered 48 hours prior. Containment initiated."
+        ),
+        "kill_chain_phases": [
+            "Initial Access", "Credential Access", "Defense Evasion",
+            "Lateral Movement", "Collection", "Exfiltration"
+        ],
+        "ttps": [
+            {"id": "T1566.001", "name": "Spear Phishing Attachment",     "tactic": "Initial Access"},
+            {"id": "T1078",     "name": "Valid Accounts",                "tactic": "Defense Evasion"},
+            {"id": "T1550.001", "name": "Pass the Cookie",               "tactic": "Defense Evasion"},
+            {"id": "T1021.002", "name": "SMB/Windows Admin Shares",      "tactic": "Lateral Movement"},
+            {"id": "T1005",     "name": "Data from Local System",        "tactic": "Collection"},
+            {"id": "T1567.002", "name": "Exfiltration to Cloud Storage", "tactic": "Exfiltration"},
+        ],
+        "timeline": [
+            {"time": t(47), "event": "Spear-phishing email delivered — spoofed institutional SSO domain", "actor": "External → admin@univ.edu",  "severity": "high",     "module": "VEIL",     "ttp_id": "T1566.001", "ttp_name": "Spear Phishing Attachment",     "tactic": "Initial Access"},
+            {"time": t(41), "event": "Credentials harvested via AiTM reverse proxy — session token captured", "actor": "admin@univ.edu",          "severity": "critical", "module": "IDENTITY", "ttp_id": "T1078",     "ttp_name": "Valid Accounts",                "tactic": "Defense Evasion"},
+            {"time": t(38), "event": "Impossible travel: login from Russia — 2h after Boston session",    "actor": "IP: 185.220.101.14",           "severity": "critical", "module": "SENTINEL", "ttp_id": "T1550.001", "ttp_name": "Pass the Cookie",               "tactic": "Defense Evasion"},
+            {"time": t(25), "event": "Lateral movement via SMB — 6 internal hosts contacted",            "actor": "10.0.4.23 → internal subnet",  "severity": "critical", "module": "SENTINEL", "ttp_id": "T1021.002", "ttp_name": "SMB/Windows Admin Shares",      "tactic": "Lateral Movement"},
+            {"time": t(12), "event": "Research database bulk export — 18,421 records accessed",          "actor": "admin@univ.edu",               "severity": "critical", "module": "SENTINEL", "ttp_id": "T1005",     "ttp_name": "Data from Local System",        "tactic": "Collection"},
+            {"time": t(5),  "event": "2.4 GB exfiltrated to S3 bucket — domain registered 48h ago",      "actor": "IP: 185.220.101.14",           "severity": "critical", "module": "SKYNET",   "ttp_id": "T1567.002", "ttp_name": "Exfiltration to Cloud Storage",  "tactic": "Exfiltration"},
+        ],
+        "affected_records": 18421,
+        "attack_vector":    "VEIL:phishing → IDENTITY:compromise → SENTINEL:token_replay → SENTINEL:lateral_movement → SENTINEL:mass_download → SKYNET:exfiltration",
+        "dwell_time":       "47 minutes",
+        "ai_powered":       False,
+    }
 
 
 @router.get("/oracle/timeline")
 async def get_oracle_timeline():
-    global _oracle_cache
-    now_ts = time.time()
-    
-    # Get real incidents from the engine
     incidents = oracle_engine.get_active_incidents()
-    
-    if not incidents:
-        # Fallback: high-fidelity simulated APT incident with full MITRE ATT&CK mapping
-        now = datetime.now()
-        t   = lambda m: (now - timedelta(minutes=m)).strftime("%H:%M")
 
-        sim_incident = {
-            "incident_id":       f"INC-SIM-{random.randint(1000, 9999)}",
-            "severity":          "critical",
-            "title":             "[T1566.001] Spear-Phishing → Credential Compromise → Data Exfiltration",
-            "summary":           (
-                "ARGUS has reconstructed a multi-stage APT intrusion originating from a targeted "
-                "spear-phishing campaign against institutional faculty identities. Attackers leveraged "
-                "a spoofed SSO portal to harvest valid session tokens, enabling silent lateral movement "
-                "and exfiltration of research database records. Containment initiated."
-            ),
-            "kill_chain_phases": [
-                "Initial Access", "Credential Access", "Defense Evasion",
-                "Lateral Movement", "Collection", "Exfiltration"
-            ],
-            "ttps": [
-                {"id": "T1566.001", "name": "Spear Phishing Attachment",  "tactic": "Initial Access"},
-                {"id": "T1078",     "name": "Valid Accounts",             "tactic": "Defense Evasion"},
-                {"id": "T1550.001", "name": "Pass the Cookie",            "tactic": "Defense Evasion"},
-                {"id": "T1021.002", "name": "SMB/Windows Admin Shares",   "tactic": "Lateral Movement"},
-                {"id": "T1005",     "name": "Data from Local System",     "tactic": "Collection"},
-                {"id": "T1567.002", "name": "Exfiltration to Cloud Storage", "tactic": "Exfiltration"},
-            ],
-            "timeline": [
-                {"time": t(47), "event": "Spear-phishing email delivered — spoofed institutional SSO domain", "actor": "External → admin@univ.edu",    "severity": "high",     "module": "VEIL",     "ttp_id": "T1566.001", "ttp_name": "Spear Phishing Attachment",  "tactic": "Initial Access"},
-                {"time": t(41), "event": "Credentials harvested via reverse proxy — session token captured",  "actor": "admin@univ.edu",                "severity": "critical", "module": "IDENTITY", "ttp_id": "T1078",     "ttp_name": "Valid Accounts",             "tactic": "Defense Evasion"},
-                {"time": t(38), "event": "Impossible travel: login from Russia — 2h after Boston session",    "actor": "IP: 185.220.101.14",             "severity": "critical", "module": "SENTINEL", "ttp_id": "T1550.001", "ttp_name": "Pass the Cookie",            "tactic": "Defense Evasion"},
-                {"time": t(25), "event": "Lateral movement via SMB — 6 internal hosts contacted",            "actor": "10.0.4.23 → internal subnet",    "severity": "critical", "module": "SENTINEL", "ttp_id": "T1021.002", "ttp_name": "SMB/Windows Admin Shares",   "tactic": "Lateral Movement"},
-                {"time": t(12), "event": "Research database bulk export — 18,421 records accessed",          "actor": "admin@univ.edu",                "severity": "critical", "module": "SENTINEL", "ttp_id": "T1005",     "ttp_name": "Data from Local System",     "tactic": "Collection"},
-                {"time": t(5),  "event": "2.4 GB exfiltrated to S3 bucket — domain registered 48h ago",      "actor": "IP: 185.220.101.14",             "severity": "critical", "module": "SKYNET",   "ttp_id": "T1567.002", "ttp_name": "Exfiltration to Cloud Storage", "tactic": "Exfiltration"},
-            ],
-            "affected_records": 18421,
-            "attack_vector":     "VEIL:phishing_campaign → IDENTITY:identity_compromise → SENTINEL:token_replay → SENTINEL:lateral_movement → SENTINEL:mass_download → SKYNET:data_exfiltration",
-            "dwell_time":        "47 minutes",
-            "ai_powered":        False,
-        }
-        return sim_incident
+    # Use sim if no real incidents, or if real incident is too sparse to be useful
+    if not incidents or len(incidents[0].get("ttps", [])) < 3 or len(incidents[0].get("timeline", [])) < 4:
+        return _build_sim_incident()
 
-    # Take the most significant active incident
     primary_inc = incidents[0]
-    
-    # Generate AI Narrative if not already generated or if it's the cached one
-    if not primary_inc.get("ai_summary") or primary_inc.get("summary").startswith("Multi-stage attack"):
+
+    # Generate AI narrative if missing
+    if not primary_inc.get("ai_summary") or primary_inc.get("summary", "").startswith("Multi-stage attack"):
         try:
-            timeline_text = "\n".join([f"{e['time']} — {e['event']} ({e['actor']})" for e in primary_inc["timeline"]])
+            timeline_text = "\n".join([
+                f"{e['time']} — {e['event']} ({e['actor']})"
+                for e in primary_inc["timeline"]
+            ])
             prompt = _ORACLE_PROMPT.format(
                 timeline=timeline_text,
                 vector=primary_inc["attack_vector"],
-                records=random.randint(50, 5000), # Simulated record count
-                dwell=f"{random.randint(5, 60)} minutes"
+                records=primary_inc.get("affected_records", random.randint(50, 5000)),
+                dwell=primary_inc.get("dwell_time", f"{random.randint(5, 60)} minutes"),
             )
-            
-            router = oracle_router()
-            raw = await router.agenerate(prompt)
+            r = oracle_router()
+            raw = await r.agenerate(prompt)
             if raw:
-                primary_inc["summary"] = _strip_thinking(raw)
+                primary_inc["summary"]   = _strip_thinking(raw)
                 primary_inc["ai_powered"] = True
         except Exception as exc:
             logger.warning(f"ORACLE AI narration failed: {exc}")
@@ -823,9 +830,22 @@ async def get_response_recommendations(req: ResponseRequest):
     except Exception as exc:
         logger.warning(f"RESPONSE AI failed: {exc}")
 
-    if ai_response.get("immediate_actions"):
-        immediate = [a["action"] if isinstance(a, dict) else a for a in ai_response["immediate_actions"]]
-        followup  = [a["action"] if isinstance(a, dict) else a for a in ai_response.get("followup_actions", [])]
+    def _parse_action(a) -> str:
+        return a["action"] if isinstance(a, dict) else a
+
+    def _actions_look_valid(actions: list) -> bool:
+        # Reject if actions are all-caps underscore tokens (unparsed AI output)
+        if not actions:
+            return False
+        return not all(
+            isinstance(a, str) and a == a.upper() and "_" in a
+            for a in actions
+        )
+
+    raw_immediate = [_parse_action(a) for a in ai_response.get("immediate_actions", [])]
+    if ai_response.get("immediate_actions") and _actions_look_valid(raw_immediate):
+        immediate = raw_immediate
+        followup  = [_parse_action(a) for a in ai_response.get("followup_actions", [])]
         eta       = ai_response.get("estimated_response_time", "< 15 minutes")
         escalate  = ai_response.get("escalation_required", req.severity in ["critical", "high"])
     elif req.severity in ("critical", "high"):

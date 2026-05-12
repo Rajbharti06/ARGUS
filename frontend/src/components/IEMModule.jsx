@@ -326,15 +326,15 @@ function CampaignPanel({ data }) {
         </button>
       </div>
 
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-3 gap-3 mb-4">
         {[
-          { label: 'Target Institutions', value: res.n_targets ?? n, suffix: '' },
-          { label: 'Avg P(breach)', value: pct, suffix: '%' },
-          { label: 'Expected Breaches', value: expected.toFixed(1), suffix: '' },
-        ].map(({ label, value, suffix }) => (
+          { label: 'Target Institutions', value: res.n_targets ?? n, suffix: '', color: '#0040C1' },
+          { label: 'Avg P(breach)', value: pct, suffix: '%', color: '#DC2626' },
+          { label: 'Expected Breaches', value: expected.toFixed(1), suffix: '', color: '#D97706' },
+        ].map(({ label, value, suffix, color }) => (
           <div key={label} className="rounded-lg p-4 text-center"
             style={{ background: '#F8FAFC', border: '1px solid rgba(15,23,42,0.08)' }}>
-            <div className="text-xl font-bold mb-1" style={{ color: '#0040C1', fontFamily: 'JetBrains Mono, monospace' }}>
+            <div className="text-xl font-bold mb-1" style={{ color, fontFamily: 'JetBrains Mono, monospace' }}>
               {value}{suffix}
             </div>
             <div className="text-xs" style={{ color: '#94A3B8' }}>{label}</div>
@@ -342,10 +342,31 @@ function CampaignPanel({ data }) {
         ))}
       </div>
 
-      {res.range && (
-        <div className="mt-4 text-xs text-center" style={{ color: '#94A3B8', fontFamily: 'JetBrains Mono, monospace' }}>
-          Probabilistic range: {res.range[0]?.toFixed(1)} – {res.range[1]?.toFixed(1)} breaches (95% CI)
+      {/* FIDO2 prevention stat */}
+      {res.fido2_scenario && (
+        <div className="rounded-lg p-3 mb-3" style={{ background: 'rgba(22,163,74,0.06)', border: '1px solid rgba(22,163,74,0.15)' }}>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Lock className="w-3.5 h-3.5" style={{ color: '#16A34A' }} />
+              <span className="text-xs font-semibold" style={{ color: '#16A34A' }}>With FIDO2 deployment</span>
+            </div>
+            <div className="text-right">
+              <span className="text-sm font-bold" style={{ color: '#16A34A', fontFamily: 'JetBrains Mono, monospace' }}>
+                {res.fido2_scenario.breaches_prevented?.toFixed(1)} breaches prevented
+              </span>
+              <span className="text-xs ml-2" style={{ color: '#94A3B8', fontFamily: 'JetBrains Mono, monospace' }}>
+                ({((res.fido2_scenario.breach_probability ?? 0) * 100).toFixed(1)}% P(breach))
+              </span>
+            </div>
+          </div>
         </div>
+      )}
+
+      {/* Real-world alignment */}
+      {res.real_world_alignment && (
+        <p className="text-xs leading-relaxed" style={{ color: '#64748B', fontFamily: 'JetBrains Mono, monospace', fontSize: '0.58rem' }}>
+          {res.real_world_alignment}
+        </p>
       )}
     </Card>
   )
@@ -526,6 +547,18 @@ function RealtimeIEM() {
                 </div>
               ))}
             </div>
+
+            {/* Active signals detected */}
+            {result.active_signals?.length > 0 && (
+              <div className="mb-3 flex flex-wrap gap-1.5">
+                {result.active_signals.map(sig => (
+                  <span key={sig} className="text-xs px-2 py-0.5 rounded-full"
+                    style={{ background: 'rgba(220,38,38,0.08)', color: '#DC2626', border: '1px solid rgba(220,38,38,0.2)', fontFamily: 'JetBrains Mono, monospace', fontSize: '0.57rem' }}>
+                    {sig}
+                  </span>
+                ))}
+              </div>
+            )}
 
             {result.recommendation && (
               <div className="flex items-start gap-2">
