@@ -1,303 +1,211 @@
-# ARGUS — Autonomous Cyber Defense Intelligence Platform
+# ARGUS — Autonomous University Cyber Defense Platform
 
 > *Named after Argus Panoptes — the hundred-eyed Greek titan who never sleeps.*
 
-ARGUS is a full-stack AI-powered Security Operations Center (SOC) dashboard built for university and enterprise environments. It monitors threats in real time, analyzes phishing with large language models, scores identity trust using behavioral signals, visualizes attack chains as interactive node graphs, audits cloud infrastructure compliance, drives autonomous incident response, and quantifies breach probability using a peer-reviewed probabilistic model — all from a single dark-glass intelligence console.
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
+[![Python](https://img.shields.io/badge/Python-3.11%2B-blue.svg)](backend/)
+[![Node](https://img.shields.io/badge/Node.js-18%2B-green.svg)](frontend/)
+[![Agents](https://img.shields.io/badge/AI%20Agents-32%2B-gold.svg)](frontend/src/components/)
+[![MITRE](https://img.shields.io/badge/MITRE%20ATT%26CK-v15-red.svg)](https://attack.mitre.org/)
 
----
+ARGUS is a **production-grade, AI-native SOC intelligence platform** built for universities — the highest-value, lowest-defended targets in the modern threat landscape. It combines a Palantir-style analyst dashboard with 32+ autonomous AI agents, deception intelligence, and Monte Carlo breach probability modeling into a single impenetrable defense layer.
 
-## Overview
-
-![Overview Module](screenshots/Overview.png)
-
-The Overview module is the command center of ARGUS. The left sidebar provides dark-glass navigation across all nine modules grouped by function (Intelligence, Surveillance, Defense, Infrastructure). The main canvas features a live threat actor spotlight (ShinyHunters — 601K+ records), real-time system counters, the ARGUS AI Core radial sphere visualization, a global threat map with active incident markers, and a full attack kill chain strip at the bottom tracing the live intrusion path: **Phishing Delivery → Credential Compromise → Lateral Movement → Cloud Data Access → Exfiltration Attempt**.
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                        ARGUS PLATFORM v4.2                           │
+│                                                                       │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  ┌───────────┐  │
+│  │  SENTINEL   │  │    VEIL     │  │   ORACLE    │  │ BREACH-IQ │  │
+│  │  Real-time  │  │  Phishing   │  │  Kill-chain │  │  Monte    │  │
+│  │    SIEM     │  │  Cognition  │  │  Correlation│  │  Carlo    │  │
+│  └─────────────┘  └─────────────┘  └─────────────┘  └───────────┘  │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  ┌───────────┐  │
+│  │  IDENTITY   │  │   SKYNET    │  │  RESPONSE   │  │  PHANTOM  │  │
+│  │ Zero-Trust  │  │  Cloud      │  │  Autonomous │  │ Deception │  │
+│  │  Scoring    │  │  Posture    │  │  Playbooks  │  │ Network   │  │
+│  └─────────────┘  └─────────────┘  └─────────────┘  └───────────┘  │
+│  ┌─────────────────────────────────────────────────────────────┐    │
+│  │              NEXUS · The Orchestrator Integration            │    │
+│  │    32 Autonomous Agents · 8 Swarms · Raft Consensus         │    │
+│  └─────────────────────────────────────────────────────────────┘    │
+└─────────────────────────────────────────────────────────────────────┘
+```
 
 ---
 
 ## Modules
 
-### SENTINEL — Threat Monitoring
-
-![Sentinel Module](screenshots/Sentinel.png)
-
-Real-time SIEM-style threat monitoring. The header displays live aggregate stats — critical events, high events, active sessions (1,847), and total events processed (4.2M). The main table shows a filterable, sortable event feed with CRITICAL / HIGH / MEDIUM / LOW severity badges, timestamps, source IPs, and event types. Selecting any event opens a right-side detail panel with an activity sparkline, source intelligence breakdown (geo, ISP, proxy status), behavioral indicators, MITRE ATT&CK TTP mapping, and ANALYZE / INVESTIGATE action buttons. Real system threat detection runs alongside simulated events — flagged local processes and external connections are ingested live.
-
----
-
-### VEIL — Phishing Cognition Engine
-
-![Veil Module](screenshots/Veil.png)
-
-AI-powered phishing and social engineering analysis. Paste any suspicious email, SMS message, or URL into the left panel — ARGUS runs it through a 7-stage detection pipeline powered by Qwen3.6-35B-A3B via Featherless. The right panel returns a 0–100 phish risk score rendered as a red confidence bar (92/100 CRITICAL in the screenshot), attack classification, psychological manipulation vectors detected, and an executive threat briefing. Action buttons below the score allow one-click response: **Create Ticket**, **Track Threat Agent**, **Quarantine Mail and User**, **Block Domain Sender**, **Add to Threat Intel**, **Notify Impacted Users**.
-
----
-
-### IDENTITY — Trust & Behavior
-
-![Identity Module](screenshots/Identity.png)
-
-Zero-trust behavioral trust scoring for active user sessions. The header shows aggregate stats: total sessions (16,328), average trust score (87.4), anomalies detected (11), and critical sessions (4). The main table lists institutional personas with per-row trust score bars and status badges (BLOCKED / REVOKE / MONITOR / REVIEW). Clicking any user expands a right-side panel with a trust score ring visualization (DJ — score 14), a declining trust timeline chart, active session IPs, behavioral flags, and operator action buttons — **Suspend Session** and **Stay at MFA**.
+| Module | Category | Description |
+|--------|----------|-------------|
+| **SENTINEL** | Operations | Real-time SIEM — ML anomaly detection across 14,000+ endpoints, MITRE ATT&CK v15 mapped |
+| **VEIL** | Operations | AI-native phishing analysis — SPF/DKIM/DMARC + LLM reasoning chain (Qwen 3.5-35B) |
+| **ORACLE** | Operations | Cross-domain attack chain correlation — kill-chain reconstruction, lateral movement tracing |
+| **IDENTITY** | Infrastructure | Zero-trust behavioral trust scoring — continuous evaluation of all principals |
+| **SKYNET** | Infrastructure | Multi-cloud posture management — AWS/GCP/Azure compliance drift detection |
+| **RESPONSE** | Infrastructure | 6-stage autonomous containment — detect → triage → isolate → eradicate → recover → learn |
+| **THREAT INTEL** | Intelligence | Aggregated global cyber intelligence — CISA KEV, OSINT enrichment, live RSS threat feeds |
+| **NEXUS** | Advanced | The Orchestrator integration — 32 autonomous agents, 8 swarms, Raft consensus engine |
+| **PHANTOM** | Advanced | Deception intelligence — honeypots, canary tokens, attacker behavioral DNA encoding |
+| **BREACH-IQ** | Advanced | Monte Carlo breach probability — 1/2/3-yr projections, $152M exposure model, 6-framework compliance |
 
 ---
 
-### ORACLE — Attack Correlation
+## Screenshots
 
-![Oracle Module](screenshots/Oracle.png)
+| Dashboard | Sentinel | Veil |
+|-----------|----------|------|
+| ![Dashboard](screenshots/Dashboard.png) | ![Sentinel](screenshots/Sentinel.png) | ![Veil](screenshots/Veil.png) |
 
-Multi-source attack chain correlation engine. ORACLE ingests signals from every ARGUS module and reconstructs full attack chains as an interactive SVG node graph — nodes represent attack stages (Phish Email → Credential Harvest → C2 TLS → DNS Tunnel → Exfil Data) with animated connection lines showing data flow direction. The right panel shows the AI-generated executive incident narrative (powered by NVIDIA Nemotron 49B or Kimi-K2.6) and a correlated detection events log with timestamps, module attribution, and severity. When real incident data is sparse, ORACLE renders a high-fidelity simulated APT incident using a 6-TTP kill chain.
+| Oracle | Identity | Skynet |
+|--------|----------|--------|
+| ![Oracle](screenshots/Oracle.png) | ![Identity](screenshots/Identity.png) | ![Skynet](screenshots/Skynet.png) |
 
----
-
-### RESPONSE — Containment
-
-![Response Module](screenshots/Response.png)
-
-Autonomous incident response orchestration. The header shows a 6-stage response pipeline: **DETECT → TRIAGE → ISOLATE → ERADICATE → RECOVER → REVIEW** — the active stage is highlighted in amber. A live timer (4.2 hours) tracks response duration alongside mission clock readouts. The active response actions table below lists containment steps with live status badges (EXECUTING / COMPLETE / LOW). A terminal-style playbook execution log streams at the bottom, showing timestamped actions as they complete: session termination, firewall block, forensic capture, credential rotation, and SOC escalation. Operator quick-action buttons (Pause All, Regenerate Plan, Investigate) appear on the right.
-
----
-
-### SKYNET — Cloud Posture
-
-![Skynet Module](screenshots/Skynet.png)
-
-Cloud Security Posture Management (CSPM). A circular compliance gauge on the left shows 62/100 (ELEVATED RISK) with critical/high/medium/low severity breakdown stats. Cloud inventory panels show AWS (2 regions), GCP (4 resources), and Azure (1 tenant) coverage. A full findings table on the right lists every detected misconfiguration with priority severity bars, resource name, issue description, CIS benchmark control mapping, and remediation status. Compliance framework tabs (Timeline, Frameworks, Troubleshoot, Compliance Best) allow multi-view analysis. Findings include critical issues like public S3 buckets with student PII, root account MFA disabled, and production database ports exposed to the internet.
+| Response | Threat Intel | Overview |
+|----------|-------------|---------|
+| ![Response](screenshots/Response.png) | ![Threat Intel](screenshots/Threat-Intel.png) | ![Overview](screenshots/Overview.png) |
 
 ---
 
-### THREAT INTEL — Intelligence Feed
+## Architecture
 
-![Threat Intel Module](screenshots/Threat-Intel.png)
+### Three Layers
 
-Aggregated threat intelligence feed with real-time RSS from The Hacker News, SecurityWeek, Krebs on Security, BleepingComputer, Dark Reading, Infosecurity Magazine, and CISA Advisories. Filter tabs segment items by type: ALL / THREATS / INTELLIGENCE / NATION-STATE / CRIME / CVE. Each feed item shows publication time, source badge, and an education-sector relevance indicator. The right panel features a rotating threat actor profile (ShinyHunters in the screenshot) with attribution details, primary targets, recent campaign activity, TTPs, and days since last confirmed operation.
+**Layer 1 — HTML Dashboard** (`argus.html`)
+- Zero-build-step deployment: pure HTML + CDN React + Babel Standalone
+- All 10 modules rendered client-side; open the file in any browser
+- Script load order: `argus-utils` → `argus-shell` → `argus-overview` → `argus-modules` → `argus-app`
 
----
+**Layer 2 — Full React + Vite Frontend** (`frontend/`)
+- Production-grade component tree with Vite bundler
+- TypeScript-ready, hot-reload dev experience
 
-### IEM — Identity Exploitation Model
+**Layer 3 — FastAPI Backend** (`backend/`)
+- Python 3.11+, Poetry, async-first
+- WebSocket real-time event bus
+- PostgreSQL via SQLAlchemy 2.0 + Alembic migrations
+- AI routing: Featherless API → Qwen 3.5-35B (VEIL), Kimi-K2.6 (ORACLE), Foundation-Sec-8B (security reasoning)
 
-The IEM module implements the quantitative breach risk framework from Raj Bharti's IEEE TIFS 2026 paper — *"The Identity Exploitation Model: A Sequential Probabilistic Framework for Quantifying Compound Breach Risk in AiTM Phishing Campaigns Against Higher Education Institutions."*
+### AI Agent Swarms (NEXUS)
 
-**Formula:** `P(breach) = P(L1) · P(L2|L1) · P(L3|L2) · P(L4|L3)`
+| Swarm | Agents | Role |
+|-------|--------|------|
+| THREAT HUNT | 4 | Continuous anomaly hunting across all endpoints |
+| FORENSICS | 4 | Evidence collection and kill-chain reconstruction |
+| RESPONSE | 4 | Isolation, credential rotation, patch verification |
+| INTELLIGENCE | 4 | OSINT enrichment, MITRE mapping, IOC publishing |
+| DECEPTION | 4 | Honeypot deployment, lure generation, DNA encoding |
+| COMPLIANCE | 4 | NIST/ISO/GDPR/FERPA/HIPAA/PCI continuous audit |
+| LEARNING | 4 | Pattern extraction, instinct updates, memory consolidation |
+| CONSENSUS | 4 | Raft leader, blind reviewers, anti-sycophancy gate |
 
-The module surfaces six interactive panels:
+### API Routes
 
-- **Institution Breach Probability** — Animated bar chart comparing Monte Carlo results (N=100,000, seed=42) across five universities (Harvard 61.2%, UPenn, Columbia, Princeton, Michigan) with 95% confidence intervals. Each bar shows MFA type, records exposed, and attack vector.
-
-- **Intervention Sensitivity** — Ranked analysis of security interventions and their breach probability reduction. FIDO2 hardware key migration tops the list at −72% (Harvard baseline → 17.2%), followed by phishing-resistant training, AiTM-aware SOC tuning, and session monitoring.
-
-- **MFA Attack Scenario Matrix** — 5×5 heatmap of P(breach) across five attack types (Vishing, Credential Stuffing, AiTM EvilProxy, Spear-Phishing, BEC) × five MFA methods (None, SMS OTP, Push MFA, TOTP, FIDO2). Cells are color-coded: red ≥70%, amber 45–70%, blue 20–45%, teal <20%.
-
-- **Campaign Prediction** — Interactive slider (5–200 targets) computing E[B] = N × P(breach) for ShinyHunters-style mass campaigns. Shows expected breach count alongside a FIDO2 counterfactual (breaches prevented).
-
-- **Real-time IEM Assessment** — Live scoring form where operators toggle active signals (impossible travel, TOR exit node, new device, data exfil spike, phishing detected) and set MFA type / institution. Submitting runs Monte Carlo estimation and returns P(breach), 95% CI, risk tier (CRITICAL / HIGH / ELEVATED / MODERATE), per-layer probabilities (L1–L4), and a recommendation. Scores >55% automatically push a signal to the Oracle correlation engine.
-
-- **IEM Layer Architecture** — Visual breakdown of the four sequential probability layers with MITRE ATT&CK TTP mappings: L1 Human Trust (T1566.001), L2 Authentication (T1078 / T1621), L3 Interception (T1550.001), L4 Privilege (T1021 / T1567.002).
-
----
-
-## Tech Stack
-
-### Backend
-- **Python 3.11** / **FastAPI** — async routes throughout
-- **Multi-provider AI router** — Featherless (primary) + NVIDIA NIM (secondary)
-  - VEIL: `Qwen/Qwen3.6-35B-A3B`
-  - ORACLE: `nvidia/llama-3.3-nemotron-super-49b-v1` → `moonshotai/Kimi-K2.6` fallback
-  - RESPONSE: `fdtn-ai/Foundation-Sec-8B-Reasoning`
-- **IEM engine** — Monte Carlo simulation (N=100,000, seed=42) implementing IEEE TIFS 2026 sequential probability model
-- **psutil** — real CPU, memory, disk, process, and network telemetry
-- **feedparser** — live RSS ingestion from 7 security news sources
-- **httpx** — async HTTP for CISA KEV, CVE feeds, ip-api.com, AbuseIPDB, GreyNoise
-- **Poetry** — dependency management
-- **Pydantic v2** — settings and request/response validation
-
-### Frontend
-- **React 18** + **Vite**
-- **Tailwind CSS** — ARGUS dark glassmorphism design system (`--surface-base: #07090d`, `--accent-cyan: #8baeb4`, `--accent-amber: #a68b4b`, `--accent-critical: #a85c5c`)
-- **Framer Motion** — animated transitions, node graph particles, IEM bar reveals, trust ring animations
-- **Lucide React** — icons
-- **SVG** — custom sparklines, trust rings, compliance gauges, attack node graphs, IEM probability bars
+```
+/argus/*                    — core module APIs
+/argus/university/*         — university shield (status, threats, canvas-shield, domain-check)
+/intelligence/*             — live RSS feeds, CISA KEV, psutil telemetry
+/scan/*                     — phishing URL analysis
+/ws                         — WebSocket real-time event stream
+```
 
 ---
 
 ## Quick Start
 
-### 1. Clone
+### Instant Dashboard (No Build Required)
 
 ```bash
 git clone https://github.com/Rajbharti06/ARGUS.git
 cd ARGUS
+# Open argus.html in any modern browser
+open argus.html          # macOS
+start argus.html         # Windows
+xdg-open argus.html      # Linux
 ```
 
-### 2. Backend
+### Full Stack
 
 ```bash
+# Backend
 cd backend
+cp .env.example .env     # fill in API keys
 poetry install
-```
+poetry run alembic upgrade head
+poetry run uvicorn app.main:app --reload --port 8000
 
-Copy the example env file and add your API keys:
-
-```bash
-cp .env.example .env
-```
-
-```env
-# Required — get a free key at featherless.ai
-FEATHERLESS_API_KEY=your_featherless_key
-
-# Optional — for ORACLE high-quality narratives
-NVIDIA_API_KEY=your_nvidia_key
-
-# Optional — for enhanced IP threat intelligence
-ABUSEIPDB_API_KEY=your_abuseipdb_key
-GREYNOISE_API_KEY=your_greynoise_key
-```
-
-Start the backend:
-
-```bash
-poetry run uvicorn app.main:app --reload
-```
-
-Backend runs on `http://localhost:8000`.
-
-### 3. Frontend
-
-```bash
+# Frontend (new terminal)
 cd frontend
 npm install
 npm run dev
 ```
 
-Frontend runs on `http://localhost:5173`. Vite proxies `/api/*` to the FastAPI backend automatically.
+### Docker (Recommended for Production)
 
----
-
-## API Reference
-
-All ARGUS module endpoints are prefixed with `/api/argus`.
-
-| Method | Endpoint | Module | Description |
-|--------|----------|--------|-------------|
-| `GET` | `/api/argus/sentinel/events` | SENTINEL | Live threat event feed with severity, IPs, TTP mapping |
-| `GET` | `/api/argus/sentinel/stats` | SENTINEL | System metrics (threats blocked, risk score, uptime) |
-| `POST` | `/api/argus/veil/analyze` | VEIL | AI phishing analysis — risk score, indicators, narrative |
-| `POST` | `/api/argus/veil/stream` | VEIL | SSE streaming endpoint for real-time AI token output |
-| `POST` | `/api/argus/identity/score` | IDENTITY | Zero-trust session scoring (0–100) from behavioral signals |
-| `GET` | `/api/argus/oracle/timeline` | ORACLE | AI-correlated attack timeline + MITRE ATT&CK kill chain |
-| `GET` | `/api/argus/skynet/scan` | SKYNET | Cloud findings + compliance score + CIS benchmarks |
-| `POST` | `/api/argus/response/recommend` | RESPONSE | AI incident response playbook by severity and event type |
-| `GET` | `/api/argus/iem/institutions` | IEM | Monte Carlo breach probability for 5 universities (Table IV) |
-| `GET` | `/api/argus/iem/sensitivity` | IEM | Intervention sensitivity analysis — breach reduction by control |
-| `GET` | `/api/argus/iem/simulator` | IEM | 5×5 MFA × attack type scenario matrix (Table IX) |
-| `GET` | `/api/argus/iem/campaign` | IEM | ShinyHunters campaign prediction — E[B] = N × P(breach) |
-| `POST` | `/api/argus/iem/realtime` | IEM | Real-time IEM assessment from live operator-supplied signals |
-
-Intelligence data endpoints (no AI, real telemetry):
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `GET` | `/api/intelligence/system` | Real CPU, memory, disk, processes via psutil |
-| `GET` | `/api/intelligence/network` | Active TCP connections with risk scoring |
-| `GET` | `/api/intelligence/news` | Live RSS from 7 cybersecurity news sources |
-| `GET` | `/api/intelligence/threats` | CVEs from circl.lu + threat actor database |
-| `GET` | `/api/intelligence/cisa-kev` | CISA Known Exploited Vulnerabilities catalog |
-| `GET` | `/api/intelligence/ip-intel/{ip}` | Multi-source IP enrichment (ip-api + AbuseIPDB + GreyNoise) |
-| `GET` | `/api/intelligence/ttps` | Full ARGUS MITRE ATT&CK TTP reference table |
-
----
-
-## Project Structure
-
-```
-ARGUS/
-├── backend/
-│   ├── app/
-│   │   ├── core/
-│   │   │   ├── config.py          # Pydantic settings, API keys, model routing
-│   │   │   └── logging.py
-│   │   ├── routes/
-│   │   │   ├── argus.py           # All 8 module endpoints (Sentinel → IEM)
-│   │   │   └── intelligence.py    # Real telemetry endpoints
-│   │   ├── services/
-│   │   │   ├── ai_router.py       # Multi-provider LLM router with fallbacks
-│   │   │   ├── oracle.py          # Correlation engine — signal → incident
-│   │   │   ├── iem.py             # Identity Exploitation Model Monte Carlo engine
-│   │   │   ├── threat_intel.py    # Multi-source IP enrichment + TTP mapping
-│   │   │   └── telemetry.py       # psutil system + network telemetry
-│   │   └── main.py
-│   ├── .env.example
-│   └── pyproject.toml
-├── frontend/
-│   ├── src/
-│   │   ├── components/
-│   │   │   ├── OverviewModule.jsx      # Command center dashboard
-│   │   │   ├── SentinelModule.jsx      # SIEM table + event detail
-│   │   │   ├── VeilModule.jsx          # Phishing AI analysis
-│   │   │   ├── IdentityModule.jsx      # Zero-trust session scoring
-│   │   │   ├── OracleModule.jsx        # Attack correlation node graph
-│   │   │   ├── SkynetModule.jsx        # Cloud posture + compliance
-│   │   │   ├── ResponseModule.jsx      # Incident response pipeline
-│   │   │   ├── ThreatIntelModule.jsx   # Intelligence feed + threat actors
-│   │   │   ├── IEMModule.jsx           # Identity Exploitation Model
-│   │   │   └── ui/                    # Shared components (ArgusCore, feeds, panels)
-│   │   ├── utils/
-│   │   │   └── cn.js                  # Tailwind class merging
-│   │   ├── App.jsx                    # Shell, sidebar nav, module routing
-│   │   └── index.css                  # ARGUS dark glass design system + animations
-│   ├── tailwind.config.js
-│   └── vite.config.ts
-└── screenshots/                       # Module reference screenshots
+```bash
+cp .env.example .env
+docker compose up -d
+# Dashboard available at http://localhost
+# API at http://localhost:8000
 ```
 
 ---
 
-## AI Provider Setup
+## Configuration
 
-ARGUS uses a multi-provider AI router with automatic fallbacks:
-
-```
-VEIL:     Featherless (Qwen3.6-35B-A3B)       → NVIDIA fallback
-ORACLE:   NVIDIA Nemotron 49B                  → Featherless (Kimi-K2.6) fallback
-RESPONSE: Featherless (Foundation-Sec-8B-Reasoning)
-FAST:     Featherless (GLM-5.1)
-FALLBACK: Featherless (Llama-3.1-8B-Instruct)
-```
-
-**Featherless** (recommended) — free tier available, runs 500+ open-source models via OpenAI-compatible API. Get a key at [featherless.ai](https://featherless.ai).
-
-**NVIDIA NIM** — high-quality inference for Nemotron, Llama, and Mistral models. Get a key at [build.nvidia.com](https://build.nvidia.com).
-
-**AbuseIPDB** — free tier: 1,000 IP checks/day. Enhances Sentinel IP enrichment and VEIL URL reputation. Get a key at [abuseipdb.com](https://www.abuseipdb.com).
-
-**GreyNoise** — Community free tier: scanner/noise classification for IPs. Get a key at [greynoise.io](https://www.greynoise.io).
+| Variable | Description | Where to get |
+|----------|-------------|---------------|
+| `FEATHERLESS_API_KEY` | Qwen/Kimi model access | featherless.ai (free tier) |
+| `ANTHROPIC_API_KEY` | Claude advanced reasoning chains | console.anthropic.com |
+| `AUTH0_DOMAIN` | SSO/OAuth analyst authentication | auth0.com |
+| `DATABASE_URL` | PostgreSQL connection string | local or managed DB |
+| `REDIS_URL` | Cache + WebSocket pub/sub | local or managed Redis |
 
 ---
 
-## Demo Flow
+## Threat Coverage
 
-1. Open `http://localhost:5173`
-2. **OVERVIEW** — watch live threat counters; ShinyHunters card shows 601K+ exposed records; kill chain strip shows active intrusion stage
-3. **SENTINEL** — filter by CRITICAL severity; click "Credential Harvest" to see sparkline + geo-intel + TTP panel
-4. **VEIL** — click "IT Security Alert" sample, hit **Initiate Analysis** — watch the 7-stage pipeline complete and return 92/100 CRITICAL with action buttons
-5. **IDENTITY** — click "DJ" (trust score 14) to see the declining trust timeline and BLOCKED session status
-6. **ORACLE** — click **Execute Correlation** — watch the attack node graph animate; read the AI-generated incident narrative
-7. **RESPONSE** — click **Run Playbook** — watch the terminal log stream as containment actions execute stage by stage
-8. **SKYNET** — view the 62/100 compliance gauge and findings table with CIS benchmark control mappings
-9. **THREAT INTEL** — browse live security news; click ShinyHunters in the right panel to see full threat actor profile
-10. **IEM** — view the institution breach probability bars (Harvard 61.2%); toggle signals in Real-time Assessment and click **Run Assessment** to compute live P(breach)
+Universities are the #1 target for nation-state actors and ransomware groups — student PII, research IP, health records, and financial systems all in one network, defended by a skeleton security team.
+
+ARGUS defends against:
+
+- **Credential phishing** targeting SSO portals (ShinyHunters, Scattered Spider TTPs)
+- **Ransomware** via unpatched appliances (Akira, CL0P playbooks)
+- **Research data exfiltration** through cloud misconfigurations (T1530)
+- **Supply-chain compromise** via signed software poisoning (APT29, T1195)
+- **AI-generated attacks** — deepfake voice fraud, LLM-enhanced spear-phishing
+- **Insider threat** — behavioral drift detection across all principals (T1078)
+- **Zero-day exploitation** — cloud WAF + honeypot early-warning system
 
 ---
 
-## Research
+## Research Foundation
 
-The IEM module implements the quantitative model from:
-
-> Raj Bharti. *"The Identity Exploitation Model: A Sequential Probabilistic Framework for Quantifying Compound Breach Risk in Adversary-in-the-Middle Phishing Campaigns Against Higher Education Institutions."* IEEE Transactions on Information Forensics and Security (TIFS), 2026.
-
-All Monte Carlo results (N=100,000, seed=42) reproduce Table IV and Table IX of the paper. The FIDO2 −72% breach reduction finding is derived from the L2 authentication layer range calibration (18–35% vs 85–98% for Push MFA).
+| Technique | Source |
+|-----------|--------|
+| Monte Carlo Breach Probability | Academic literature on university cyber incident frequency/cost |
+| Behavioral DNA Encoding | AETHER deception research — attacker fingerprinting via interaction patterns |
+| Raft Consensus for AI Agents | Raft (Ongaro & Ousterhout 2014) adapted for multi-agent groupthink prevention |
+| Zero-Trust Identity Scoring | NIST SP 800-207 continuous trust evaluation |
+| MITRE ATT&CK Mapping | ATT&CK v15 Enterprise framework |
 
 ---
 
 ## License
 
-MIT
+Copyright 2026 Raj Bharti
+
+Licensed under the **Apache License, Version 2.0** — see [LICENSE](LICENSE) for full terms.
+
+You may use, modify, and distribute this software freely. You may **not** sublicense or sell it under a different license, and any derivative works must carry the same Apache 2.0 license. Attribution to the original authors is required.
+
+---
+
+## Acknowledgements
+
+- [The Orchestrator](https://github.com/Rajbharti06/The-Orchestrator) — autonomous agent engine (NEXUS integration)
+- [MITRE ATT&CK](https://attack.mitre.org/) — adversary tactics & techniques framework
+- [Wazuh](https://wazuh.com/) — open-source SIEM/XDR reference architecture
+- [TheHive Project](https://thehive-project.org/) — incident response platform inspiration
+- [Shuffle SOAR](https://shuffler.io/) — security automation reference
+- [NIST Cybersecurity Framework](https://www.nist.gov/cyberframework) — compliance baseline
+- [Featherless AI](https://featherless.ai/) — serverless model inference

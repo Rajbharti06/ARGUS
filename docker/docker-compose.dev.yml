@@ -1,0 +1,84 @@
+# ARGUS — Development Docker Compose
+# Hot-reload backend, Vite dev server, PostgreSQL, Redis
+
+version: "3.9"
+
+services:
+  backend:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.backend
+      target: builder
+    container_name: argus-backend-dev
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://argus:argus_pass@postgres:5432/argus
+      - ARGUS_DEV_MODE=true
+      - USE_POSTGRES=true
+      - FEATHERLESS_API_KEY=${FEATHERLESS_API_KEY:-}
+      - NVIDIA_API_KEY=${NVIDIA_API_KEY:-}
+    volumes:
+      - ../backend/app:/app/app:cached
+      - argus_data:/data
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - argus_net
+
+  frontend:
+    image: node:20-alpine
+    container_name: argus-frontend-dev
+    working_dir: /app
+    command: sh -c "npm install --legacy-peer-deps && npm run dev -- --host 0.0.0.0"
+    ports:
+      - "5173:5173"
+    environment:
+      - VITE_API_URL=http://localhost:8000
+    volumes:
+      - ../frontend:/app:cached
+    depends_on:
+      - backend
+    networks:
+      - argus_net
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: argus-postgres-dev
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: argus
+      POSTGRES_PASSWORD: argus_pass
+      POSTGRES_DB: argus
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data_dev:/var/lib/postgresql/data
+    networks:
+      - argus_net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U argus"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: argus-redis-dev
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data_dev:/data
+    networks:
+      - argus_net
+
+volumes:
+  postgres_data_dev:
+  redis_data_dev:
+  argus_data:
+
+networks:
+  argus_net:
+    driver: bridge

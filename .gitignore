@@ -6,20 +6,9 @@ __pycache__/
 *.pyd
 
 # Distribution / packaging
-.Python
 build/
 dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
 *.egg-info/
-.installed.cfg
 *.egg
 MANIFEST
 
@@ -28,74 +17,33 @@ MANIFEST
 venv/
 env/
 ENV/
-env.bak/
-venv.bak/
 
 # ─── Environment & Secrets ───────────────────────────────────────────────────
 .env
 .env.*
-!.env.example
-*.pem
-*.key
-secrets/
+!.env.production
 
 # ─── Testing & Coverage ──────────────────────────────────────────────────────
 .pytest_cache/
 .coverage
-.coverage.*
 htmlcov/
 coverage.xml
-*.cover
-nosetests.xml
-pytest.xml
-
-# ─── Type checking / linting ─────────────────────────────────────────────────
-.mypy_cache/
-.dmypy.json
-dmypy.json
-.ruff_cache/
 
 # ─── Node / Frontend ─────────────────────────────────────────────────────────
 node_modules/
 npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-.pnp
-.pnp.js
-
-# Vite / build output
-frontend/dist/
-frontend/.vite/
 dist/
 .cache/
+argus-frontend/
 
 # ─── IDE & OS ─────────────────────────────────────────────────────────────────
 .vscode/
 .idea/
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
 .DS_Store
 Thumbs.db
-desktop.ini
+.cursor/
+.claude/
 
 # ─── Logs ─────────────────────────────────────────────────────────────────────
 *.log
 logs/
-
-# ─── IDE settings ─────────────────────────────────────────────────────────────
-.claude/
-.cursor/
-.vscode/
-
-# ─── Misc stray files ─────────────────────────────────────────────────────────
-refs/
-argus-app.jsx
-argus-modules.jsx
-argus-overview.jsx
-argus-shell.jsx
-argus-utils.jsx
-argus.html
-argus-frontend/
