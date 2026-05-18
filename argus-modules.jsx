@@ -1051,10 +1051,281 @@ const NEXUS_LOG_INITIAL = [
   { t: '11:46:44', agent: 'Gate-Guard',   action: 'Anti-sycophancy gate cleared — unique verdicts', status: 'DONE' },
 ];
 
+/* ════════════════════════════════════════════════════
+   THINK ENGINE — Palantir-Grade Intelligence Panel
+══════════════════════════════════════════════════════ */
+
+const THINK_API = 'http://localhost:8000/think';
+const CONF_COLOR = (c) => c >= 0.8 ? '#7ec99a' : c >= 0.55 ? '#e89a4a' : '#e15c6b';
+const CONF_LABEL = (c) => c >= 0.8 ? 'HIGH' : c >= 0.55 ? 'MEDIUM' : 'LOW';
+
+function ThinkPanel() {
+  const [question, setQuestion] = React.useState('');
+  const [running, setRunning]   = React.useState(false);
+  const [phase, setPhase]       = React.useState('');
+  const [result, setResult]     = React.useState(null);
+  const [error, setError]       = React.useState('');
+  const [tab, setTab]           = React.useState('report'); // report | hypotheses | actions | tree
+
+  async function runAnalysis() {
+    if (!question.trim()) return;
+    setRunning(true); setError(''); setResult(null);
+    const phases = ['THINK', 'RELATE', 'SUGGEST', 'EXECUTE', 'PRESENT'];
+    let pi = 0;
+    const tick = setInterval(() => { setPhase(phases[pi % phases.length]); pi++; }, 900);
+    try {
+      const res = await fetch(`${THINK_API}/analyze`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ question, context: '', skip_execute: false }),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      setResult(data);
+      setTab('report');
+    } catch (e) {
+      setError(e.message || 'Pipeline failed');
+    } finally {
+      clearInterval(tick);
+      setPhase('');
+      setRunning(false);
+    }
+  }
+
+  const conf = result?.confidence ?? 0;
+  const hyps = result?.suggest?.hypotheses ?? [];
+  const actions = result?.execute?.actions ?? [];
+  const keyJudgments = result?.present?.keyJudgments ?? [];
+  const bluf = result?.bluf ?? '';
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12, height: '100%' }}>
+
+      {/* Input bar */}
+      <div style={{ display: 'flex', gap: 8 }}>
+        <input
+          value={question}
+          onChange={e => setQuestion(e.target.value)}
+          onKeyDown={e => e.key === 'Enter' && !running && runAnalysis()}
+          placeholder="Intelligence query — e.g. 'Is our SSO under credential stuffing?'"
+          style={{
+            flex: 1, background: 'rgba(0,0,0,0.35)', border: '1px solid var(--line)',
+            color: 'var(--ink-0)', padding: '9px 12px', fontSize: 12, fontFamily: 'inherit',
+            borderRadius: 3, outline: 'none',
+          }}
+        />
+        <button
+          onClick={runAnalysis}
+          disabled={running || !question.trim()}
+          style={{
+            padding: '9px 18px', fontSize: 11, fontWeight: 700, letterSpacing: '0.12em',
+            fontFamily: 'inherit', cursor: running ? 'not-allowed' : 'pointer', borderRadius: 3,
+            border: '1px solid #9fc4e8', background: running ? 'rgba(159,196,232,0.08)' : 'rgba(159,196,232,0.18)',
+            color: running ? 'var(--ink-3)' : '#bcd2e8', transition: 'all 0.15s',
+          }}
+        >
+          {running ? `▶ ${phase}…` : '▶ ANALYZE'}
+        </button>
+      </div>
+
+      {error && (
+        <div style={{ padding: '8px 12px', background: 'rgba(225,92,107,0.12)', border: '1px solid rgba(225,92,107,0.3)', borderRadius: 3, fontSize: 11, color: '#e15c6b' }}>
+          ✗ {error}
+        </div>
+      )}
+
+      {result && (
+        <>
+          {/* BLUF bar */}
+          <div style={{ padding: '10px 14px', background: 'rgba(0,0,0,0.3)', border: `1px solid ${CONF_COLOR(conf)}33`, borderLeft: `3px solid ${CONF_COLOR(conf)}`, borderRadius: 3 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+              <span className="mono" style={{ fontSize: 8.5, letterSpacing: '0.16em', color: 'var(--ink-4)' }}>BOTTOM LINE UP FRONT</span>
+              <span className="mono" style={{ fontSize: 8, color: CONF_COLOR(conf), letterSpacing: '0.1em' }}>
+                {CONF_LABEL(conf)} CONFIDENCE · {(conf * 100).toFixed(0)}%
+              </span>
+            </div>
+            <div style={{ fontSize: 12, color: 'var(--ink-0)', lineHeight: 1.5 }}>{bluf}</div>
+            <div style={{ marginTop: 8, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+              {result.schema && (
+                <span className="mono" style={{ fontSize: 9, padding: '2px 8px', border: '1px solid rgba(159,196,232,0.3)', borderRadius: 2, color: '#9fc4e8', letterSpacing: '0.1em' }}>
+                  SCHEMA: {result.schema.toUpperCase()}
+                </span>
+              )}
+              {result.think?.nodes && (
+                <span className="mono" style={{ fontSize: 9, padding: '2px 8px', border: '1px solid var(--line)', borderRadius: 2, color: 'var(--ink-3)', letterSpacing: '0.1em' }}>
+                  {result.think.nodes} REASONING NODES
+                </span>
+              )}
+              {(result.relate?.entities?.length > 0) && (
+                <span className="mono" style={{ fontSize: 9, padding: '2px 8px', border: '1px solid var(--line)', borderRadius: 2, color: 'var(--ink-3)', letterSpacing: '0.1em' }}>
+                  {result.relate.entities.length} ENTITIES MAPPED
+                </span>
+              )}
+            </div>
+          </div>
+
+          {/* Tab strip */}
+          <div style={{ display: 'flex', gap: 0, borderBottom: '1px solid var(--line)' }}>
+            {[
+              { id: 'report',      label: 'IC REPORT' },
+              { id: 'hypotheses',  label: `HYPOTHESES (${hyps.length})` },
+              { id: 'actions',     label: `RESPONSE PLAN (${actions.length})` },
+              { id: 'entities',    label: `ENTITIES (${result.relate?.entities?.length ?? 0})` },
+            ].map(t => (
+              <button key={t.id} onClick={() => setTab(t.id)} style={{
+                padding: '6px 14px', fontSize: 9, fontWeight: 700, fontFamily: 'inherit',
+                letterSpacing: '0.12em', cursor: 'pointer', border: 'none',
+                borderBottom: tab === t.id ? '2px solid #9fc4e8' : '2px solid transparent',
+                background: 'transparent',
+                color: tab === t.id ? '#bcd2e8' : 'var(--ink-4)',
+                transition: 'color 0.15s',
+              }}>{t.label}</button>
+            ))}
+          </div>
+
+          {/* Tab content */}
+          <div style={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
+
+            {tab === 'report' && (
+              <div style={{ fontSize: 11, color: 'var(--ink-2)', lineHeight: 1.7 }}>
+                {keyJudgments.length > 0 && (
+                  <div style={{ marginBottom: 14 }}>
+                    <div className="label" style={{ marginBottom: 8, letterSpacing: '0.14em' }}>KEY JUDGMENTS</div>
+                    {keyJudgments.map((j, i) => (
+                      <div key={i} style={{ padding: '7px 0', borderBottom: '1px solid var(--line)', display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+                        <span className="mono" style={{ fontSize: 8, padding: '2px 6px', border: `1px solid ${CONF_COLOR(j.confidence === 'HIGH' ? 0.9 : j.confidence === 'MEDIUM' ? 0.6 : 0.3)}44`, borderRadius: 2, color: CONF_COLOR(j.confidence === 'HIGH' ? 0.9 : j.confidence === 'MEDIUM' ? 0.6 : 0.3), flexShrink: 0, letterSpacing: '0.08em' }}>
+                          {j.confidence}
+                        </span>
+                        <div>
+                          <div style={{ color: 'var(--ink-1)', marginBottom: 2 }}>{j.judgment}</div>
+                          <div style={{ fontSize: 10, color: 'var(--ink-4)', fontStyle: 'italic' }}>{j.rationale}</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {(result.present?.intelligenceGaps?.length > 0) && (
+                  <div style={{ marginBottom: 14 }}>
+                    <div className="label" style={{ marginBottom: 8, letterSpacing: '0.14em' }}>INTELLIGENCE GAPS</div>
+                    {result.present.intelligenceGaps.map((g, i) => (
+                      <div key={i} style={{ padding: '4px 0', borderBottom: '1px solid var(--line)', fontSize: 10.5, color: '#e89a4a' }}>⚠ {g}</div>
+                    ))}
+                  </div>
+                )}
+                {(result.present?.immediateRecommendations?.length > 0) && (
+                  <div>
+                    <div className="label" style={{ marginBottom: 8, letterSpacing: '0.14em' }}>IMMEDIATE RECOMMENDATIONS</div>
+                    {result.present.immediateRecommendations.map((r, i) => (
+                      <div key={i} style={{ padding: '4px 0', borderBottom: '1px solid var(--line)', fontSize: 10.5, color: '#7ec99a' }}>→ {r}</div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {tab === 'hypotheses' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {hyps.length === 0 && <div style={{ color: 'var(--ink-4)', fontSize: 11, padding: 12 }}>No hypotheses generated.</div>}
+                {hyps.map((h, i) => (
+                  <div key={i} style={{ padding: 12, background: 'rgba(0,0,0,0.25)', border: `1px solid ${CONF_COLOR(h.confidence)}22`, borderLeft: `3px solid ${CONF_COLOR(h.confidence)}`, borderRadius: 3 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                      <span className="mono" style={{ fontSize: 9, color: 'var(--ink-4)', letterSpacing: '0.1em' }}>HYPOTHESIS #{h.rank ?? i + 1}</span>
+                      <span className="mono" style={{ fontSize: 9, color: CONF_COLOR(h.confidence), letterSpacing: '0.1em' }}>{(h.confidence * 100).toFixed(0)}% CONF</span>
+                    </div>
+                    <div style={{ fontSize: 12, color: 'var(--ink-0)', marginBottom: 10, lineHeight: 1.5 }}>{h.hypothesis}</div>
+                    {h.evidence?.length > 0 && (
+                      <div style={{ fontSize: 10, color: '#7ec99a', marginBottom: 4 }}>
+                        <span style={{ opacity: 0.6, letterSpacing: '0.1em', fontSize: 8 }}>EVIDENCE · </span>
+                        {h.evidence.join(' · ')}
+                      </div>
+                    )}
+                    {h.predictedIndicators?.length > 0 && (
+                      <div style={{ fontSize: 10, color: '#9fc4e8' }}>
+                        <span style={{ opacity: 0.6, letterSpacing: '0.1em', fontSize: 8 }}>PREDICTED · </span>
+                        {h.predictedIndicators.join(' · ')}
+                      </div>
+                    )}
+                    {h.actionToVerify && (
+                      <div style={{ marginTop: 8, padding: '5px 8px', background: 'rgba(0,0,0,0.2)', borderRadius: 2, fontSize: 10, color: '#e89a4a' }}>
+                        ▶ VERIFY: {h.actionToVerify}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {tab === 'actions' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {actions.length === 0 && <div style={{ color: 'var(--ink-4)', fontSize: 11, padding: 12 }}>No response plan generated.</div>}
+                {result.execute?.strategy && (
+                  <div style={{ padding: '8px 12px', background: 'rgba(159,196,232,0.08)', border: '1px solid rgba(159,196,232,0.2)', borderRadius: 3, fontSize: 11, color: '#9fc4e8', marginBottom: 4 }}>
+                    <span style={{ opacity: 0.6, fontSize: 9, letterSpacing: '0.12em' }}>STRATEGY · </span>{result.execute.strategy}
+                  </div>
+                )}
+                {actions.map((a, i) => (
+                  <div key={i} style={{ padding: 12, background: 'rgba(0,0,0,0.25)', border: '1px solid var(--line)', borderRadius: 3 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                      <span className="mono" style={{ fontSize: 10, color: '#7ec99a', fontWeight: 700 }}>#{i + 1} — {a.effort?.toUpperCase() ?? 'ACT'}</span>
+                      <span className="mono" style={{ fontSize: 9, color: 'var(--ink-4)' }}>PRIORITY {a.priority ?? i + 1}/10</span>
+                    </div>
+                    <div style={{ fontSize: 12, color: 'var(--ink-0)', marginBottom: 6, lineHeight: 1.4 }}>{a.action}</div>
+                    <div style={{ fontSize: 10, color: 'var(--ink-3)', marginBottom: 4 }}>
+                      <span style={{ opacity: 0.6 }}>TARGETS · </span>{a.targetsCause}
+                    </div>
+                    <div style={{ fontSize: 10, color: 'var(--ink-3)' }}>
+                      <span style={{ opacity: 0.6 }}>MECHANISM · </span>{a.mechanism}
+                    </div>
+                  </div>
+                ))}
+                {result.execute?.prediction?.goalAchievement != null && (
+                  <div style={{ padding: '8px 12px', background: 'rgba(0,0,0,0.2)', border: '1px solid var(--line)', borderRadius: 3 }}>
+                    <span className="mono" style={{ fontSize: 9, color: 'var(--ink-4)', letterSpacing: '0.1em' }}>PREDICTED GOAL ACHIEVEMENT · </span>
+                    <span style={{ color: CONF_COLOR(result.execute.prediction.goalAchievement), fontWeight: 700 }}>
+                      {(result.execute.prediction.goalAchievement * 100).toFixed(0)}%
+                    </span>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {tab === 'entities' && (
+              <div>
+                {(result.relate?.entities ?? []).length === 0 && <div style={{ color: 'var(--ink-4)', fontSize: 11, padding: 12 }}>No entities extracted.</div>}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 8 }}>
+                  {(result.relate?.entities ?? []).map((e, i) => (
+                    <div key={i} style={{ padding: 10, background: 'rgba(0,0,0,0.25)', border: '1px solid var(--line)', borderRadius: 3 }}>
+                      <div className="mono" style={{ fontSize: 8, color: '#9fc4e8', letterSpacing: '0.12em', marginBottom: 4 }}>{e.type?.toUpperCase()}</div>
+                      <div style={{ fontSize: 12, color: 'var(--ink-0)', fontWeight: 600, marginBottom: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{e.name}</div>
+                      <div style={{ fontSize: 9, color: 'var(--ink-4)' }}>conf: {((e.confidence ?? 0.7) * 100).toFixed(0)}%</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+          </div>
+        </>
+      )}
+
+      {!result && !running && (
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12, opacity: 0.5 }}>
+          <div className="mono" style={{ fontSize: 11, letterSpacing: '0.2em', color: 'var(--ink-4)' }}>THINK ENGINE READY</div>
+          <div style={{ fontSize: 10, color: 'var(--ink-5)', textAlign: 'center', maxWidth: 340 }}>
+            THINK → RELATE → SUGGEST → EXECUTE → PRESENT<br />
+            Palantir-grade intelligence · AGoT reasoning · KAIROS schemas · A2P causal planning
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function Nexus() {
   const [selectedSwarm, setSelectedSwarm] = React.useState(AGENT_SWARMS[0]);
   const [log, setLog] = React.useState(NEXUS_LOG_INITIAL);
   const [tick, setTick] = React.useState(0);
+  const [nexusTab, setNexusTab] = React.useState('swarms'); // swarms | think
 
   React.useEffect(() => {
     const id = setInterval(() => setTick(t => t + 1), 4800);
@@ -1080,24 +1351,52 @@ function Nexus() {
   const activeAgents = AGENT_SWARMS.reduce((s, sw) => s + sw.agents.filter(a => a.status === 'ACTIVE' || a.status === 'RUNNING').length, 0);
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '1fr 360px', gap: 14, height: '100%', minHeight: 0 }}>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 14, minWidth: 0 }}>
-        <div className="panel" style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 0 }}>
-          <span className="corner-tick tl" /><span className="corner-tick tr" /><span className="corner-tick bl" /><span className="corner-tick br" />
-          {[
-            { label: 'TOTAL AGENTS',   value: totalAgents, tone: '#bcd2e8' },
-            { label: 'ACTIVE NOW',     value: activeAgents, tone: '#7ec99a' },
-            { label: 'SWARMS',         value: AGENT_SWARMS.length, tone: '#9fc4e8' },
-            { label: 'DECISIONS / HR', value: '142', tone: '#e89a4a' },
-            { label: 'CONSENSUS RATE', value: '99.3%', tone: '#7ec99a' },
-          ].map((s, i, arr) => (
-            <div key={s.label} style={{ padding: '14px 16px', borderRight: i < arr.length - 1 ? '1px solid var(--line)' : 'none' }}>
-              <div className="label" style={{ marginBottom: 8 }}>{s.label}</div>
-              <div className="num" style={{ fontSize: 24, fontWeight: 600, color: s.tone, letterSpacing: '-0.02em' }}>{s.value}</div>
-            </div>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 14, height: '100%', minHeight: 0 }}>
+
+      {/* Stats bar + tab strip */}
+      <div className="panel" style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr) 1fr', gap: 0 }}>
+        <span className="corner-tick tl" /><span className="corner-tick tr" /><span className="corner-tick bl" /><span className="corner-tick br" />
+        {[
+          { label: 'TOTAL AGENTS',   value: totalAgents, tone: '#bcd2e8' },
+          { label: 'ACTIVE NOW',     value: activeAgents, tone: '#7ec99a' },
+          { label: 'SWARMS',         value: AGENT_SWARMS.length, tone: '#9fc4e8' },
+          { label: 'DECISIONS / HR', value: '142', tone: '#e89a4a' },
+          { label: 'CONSENSUS RATE', value: '99.3%', tone: '#7ec99a' },
+        ].map((s, i) => (
+          <div key={s.label} style={{ padding: '14px 16px', borderRight: '1px solid var(--line)' }}>
+            <div className="label" style={{ marginBottom: 8 }}>{s.label}</div>
+            <div className="num" style={{ fontSize: 24, fontWeight: 600, color: s.tone, letterSpacing: '-0.02em' }}>{s.value}</div>
+          </div>
+        ))}
+        {/* Tab switch */}
+        <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '8px 12px', gap: 6 }}>
+          {[{ id: 'swarms', label: 'SWARMS' }, { id: 'think', label: '⬡ THINK' }].map(t => (
+            <button key={t.id} onClick={() => setNexusTab(t.id)} style={{
+              padding: '5px 10px', fontSize: 9, fontWeight: 700, fontFamily: 'inherit', letterSpacing: '0.12em',
+              cursor: 'pointer', borderRadius: 2, border: '1px solid',
+              borderColor: nexusTab === t.id ? '#9fc4e8' : 'var(--line)',
+              background: nexusTab === t.id ? 'rgba(159,196,232,0.15)' : 'transparent',
+              color: nexusTab === t.id ? '#bcd2e8' : 'var(--ink-4)',
+              transition: 'all 0.15s',
+            }}>{t.label}</button>
           ))}
         </div>
+      </div>
 
+      {nexusTab === 'think' ? (
+        <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+          <PP
+            title="THINK ENGINE"
+            sub="THINK → RELATE → SUGGEST → EXECUTE → PRESENT"
+            right={<PPl tone="live" dotPulse>PALANTIR-GRADE</PPl>}
+            style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}
+          >
+            <ThinkPanel />
+          </PP>
+        </div>
+      ) : (
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 360px', gap: 14, flex: 1, minHeight: 0 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 14, minWidth: 0 }}>
         <PP
           title="AGENT SWARM GRID"
           sub={`${totalAgents} AGENTS · ${AGENT_SWARMS.length} SWARMS · RAFT CONSENSUS`}
@@ -1181,6 +1480,8 @@ function Nexus() {
           </div>
         </PP>
       </div>
+      </div>
+      )}
     </div>
   );
 }

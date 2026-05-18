@@ -10,7 +10,7 @@ from app.core.config import settings
 from app.core.logging import logger
 from fastapi.responses import JSONResponse
 from app.core.exceptions import ArgusError
-from app.routes import scan, simulate, history, argus, intelligence, forensic
+from app.routes import scan, simulate, history, argus, intelligence, forensic, think
 
 
 def create_app() -> FastAPI:
@@ -31,6 +31,7 @@ def create_app() -> FastAPI:
     app.include_router(simulate.router, prefix="/simulate", tags=["Simulation"])
     app.include_router(history.router, prefix="/history", tags=["History"])
     app.include_router(forensic.router, prefix="/forensic", tags=["VERITAS Forensic"])
+    app.include_router(think.router, prefix="/think", tags=["Think Engine"])
 
     @app.on_event("startup")
     async def startup_event():
