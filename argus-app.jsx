@@ -2,6 +2,7 @@
 const { Sidebar, StatusBar } = window.argusShell;
 const { Overview } = window.argusOverview;
 const { Sentinel, Veil, Identity, Oracle, Skynet, Response, ThreatIntel, Nexus, Phantom, BreachIQ } = window.argusModules;
+const { Gaze } = window.argusGaze;
 
 const SCREEN_LABELS = {
   overview:  'Overview',
@@ -12,6 +13,7 @@ const SCREEN_LABELS = {
   skynet:    'Skynet · Cloud Posture',
   response:  'Response · Containment',
   intel:     'Threat Intelligence',
+  gaze:      'GAZE · Omnisearch Intelligence',
   nexus:     'Nexus · Agent Orchestrator',
   phantom:   'Phantom · Deception Network',
   breach:    'Breach-IQ · Quantitative Risk',
@@ -26,6 +28,7 @@ const SCREEN_SUBS = {
   skynet:   'Multi-cloud posture management',
   response: 'Autonomous containment orchestration',
   intel:    'Global threat awareness',
+  gaze:     'GitHub · Shodan · OTX · NVD · URLScan · RDAP · DNS · CISA KEV — any entity, all sources',
   nexus:    '32 autonomous agents · 8 swarms · Raft consensus',
   phantom:  'Honeypots · canary tokens · attacker DNA',
   breach:   'Monte Carlo breach probability · financial impact',
@@ -59,6 +62,7 @@ function App() {
             {active === 'skynet' && <Skynet />}
             {active === 'response' && <Response />}
             {active === 'intel' && <ThreatIntel />}
+            {active === 'gaze' && <Gaze />}
             {active === 'nexus' && <Nexus />}
             {active === 'phantom' && <Phantom />}
             {active === 'breach' && <BreachIQ />}
@@ -79,6 +83,7 @@ function ScreenHeader({ active }) {
     { id: 'skynet',    label: 'SKYNET' },
     { id: 'response',  label: 'RESPONSE' },
     { id: 'intel',     label: 'INTEL' },
+    { id: 'gaze',      label: 'GAZE' },
     { id: 'nexus',     label: 'NEXUS' },
     { id: 'phantom',   label: 'PHANTOM' },
     { id: 'breach',    label: 'BREACH-IQ' },
