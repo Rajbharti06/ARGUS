@@ -229,18 +229,47 @@ npm run dev
 
 ## Configuration
 
-Copy `.env.example` → `.env` inside `backend/`:
+Copy `backend/.env.example` → `backend/.env` and add your keys. Every module works without any key (rule-based fallback). Keys unlock progressively more powerful AI reasoning.
 
-| Variable | Required | Description |
-|----------|----------|-------------|
-| `FEATHERLESS_API_KEY` | Optional | Qwen/Kimi model access for VEIL + ORACLE AI analysis |
-| `ANTHROPIC_API_KEY` | Optional | Claude API for advanced reasoning chains |
-| `NVD_API_KEY` | Optional | NVD NIST API key (higher rate limits; works without key) |
-| `SHODAN_API_KEY` | Optional | Shodan enrichment for NEXUS entity graph |
-| `VIRUSTOTAL_API_KEY` | Optional | VirusTotal IOC enrichment |
-| `HIBP_API_KEY` | Optional | Have I Been Pwned credential exposure checks |
+### AI Providers
 
-> All 15 modules work without API keys using simulated/cached data. Keys unlock live AI reasoning and external threat enrichment.
+ARGUS v6.1 supports **7 AI providers** with automatic fallback. Add whichever keys you have — the router picks the best available model for each task automatically.
+
+| Provider | Variable | Free? | Models Used | Best For | Get Key |
+|----------|----------|-------|-------------|----------|---------|
+| **NVIDIA NIM** | `NVIDIA_API_KEY` | ✅ 1k calls/month | `nemotron-super-49b-v1` | Free showcase — all modules | [build.nvidia.com](https://build.nvidia.com) |
+| **Anthropic Claude** | `ANTHROPIC_API_KEY` | Paid | `claude-opus-4-7` / `claude-sonnet-4-6` | ORACLE, BREACH-IQ, IEM — best reasoning | [console.anthropic.com](https://console.anthropic.com) |
+| **OpenAI GPT** | `OPENAI_API_KEY` | Paid | `gpt-4o` / `o4-mini` | All modules, reasoning tasks | [platform.openai.com](https://platform.openai.com) |
+| **Google Gemini** | `GEMINI_API_KEY` | ✅ Free tier | `gemini-2.5-pro` / `gemini-2.0-flash` | Large log analysis, 1M token context | [aistudio.google.com](https://aistudio.google.com/app/apikey) |
+| **xAI Grok** | `XAI_API_KEY` | Paid | `grok-3` / `grok-3-mini` | Live X/internet threat feeds | [console.x.ai](https://console.x.ai) |
+| **Perplexity Sonar** | `PERPLEXITY_API_KEY` | Paid | `sonar-pro` / `sonar` | **Threat Intel — live web CVE & IOC search** | [perplexity.ai/settings/api](https://www.perplexity.ai/settings/api) |
+| **Ollama** | *(no key)* | ✅ Always free | `llama3.2` / `mistral` | Offline, private, no internet | [ollama.ai](https://ollama.ai) |
+
+### Task Routing
+
+Each ARGUS module is routed to the optimal provider for its job:
+
+| Module | Priority Chain |
+|--------|---------------|
+| **VEIL** (phishing) | NVIDIA → Claude Sonnet → GPT-4o → Gemini Flash → Grok Mini |
+| **ORACLE** (attack chain) | Claude Opus → GPT o4-mini → Gemini Pro → Grok → NVIDIA |
+| **THREAT INTEL** | Perplexity Sonar *(live web)* → Grok → Claude → GPT → NVIDIA |
+| **BREACH-IQ** | Claude Opus → GPT-4o → Gemini Pro → Grok → NVIDIA |
+| **HUNT** | NVIDIA → Claude Sonnet → GPT-4o → Gemini Flash |
+| **IEM** | Claude Opus → GPT o4-mini → Gemini Pro → Grok → NVIDIA |
+
+### Threat Intelligence APIs
+
+| Variable | Free Tier | Description |
+|----------|-----------|-------------|
+| `NVD_API_KEY` | Yes | NVD NIST — higher rate limits (works without key) |
+| `ABUSEIPDB_API_KEY` | 1,000/day | IP reputation checks in NEXUS |
+| `GREYNOISE_API_KEY` | Community | Noise vs. targeted attack classification |
+| `SHODAN_API_KEY` | Limited | Asset exposure scanning in NEXUS |
+| `VIRUSTOTAL_API_KEY` | 500/day | File/URL/IP reputation |
+| `HIBP_API_KEY` | Paid | Credential breach exposure checks |
+
+> **Quickest demo setup:** Get a free NVIDIA NIM key at [build.nvidia.com](https://build.nvidia.com) — all 15 modules go live immediately on a 49B parameter model.
 
 ---
 
