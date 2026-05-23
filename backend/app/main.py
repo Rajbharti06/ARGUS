@@ -10,7 +10,7 @@ from app.core.config import settings
 from app.core.logging import logger
 from fastapi.responses import JSONResponse
 from app.core.exceptions import ArgusError
-from app.routes import scan, simulate, history, argus, intelligence, forensic, think, gaze
+from app.routes import scan, simulate, history, argus, intelligence, forensic, think, gaze, university, nexus, phantom, breach_iq, hunt, mitre
 
 
 def create_app() -> FastAPI:
@@ -26,6 +26,7 @@ def create_app() -> FastAPI:
     )
 
     app.include_router(argus.router, prefix="/argus", tags=["ARGUS"])
+    app.include_router(university.router, prefix="/argus/university", tags=["University Shield"])
     app.include_router(intelligence.router, prefix="/intelligence", tags=["Intelligence"])
     app.include_router(scan.router, prefix="/scan", tags=["Scan"])
     app.include_router(simulate.router, prefix="/simulate", tags=["Simulation"])
@@ -33,6 +34,13 @@ def create_app() -> FastAPI:
     app.include_router(forensic.router, prefix="/forensic", tags=["VERITAS Forensic"])
     app.include_router(think.router, prefix="/think", tags=["Think Engine"])
     app.include_router(gaze.router, prefix="/gaze", tags=["GAZE Omnisearch"])
+    from app.routes import debate
+    app.include_router(debate.router, prefix="/debate", tags=["Debate Engine"])
+    app.include_router(nexus.router,     prefix="/nexus",     tags=["NEXUS Entity Graph"])
+    app.include_router(phantom.router,   prefix="/phantom",   tags=["PHANTOM Deception"])
+    app.include_router(breach_iq.router, prefix="/breach-iq", tags=["BREACH-IQ Risk"])
+    app.include_router(hunt.router,      prefix="/hunt",      tags=["Threat Hunt"])
+    app.include_router(mitre.router,     prefix="/mitre",     tags=["MITRE ATT&CK"])
 
     @app.on_event("startup")
     async def startup_event():
